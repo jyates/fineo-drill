@@ -14,7 +14,7 @@
   <parent>
     <artifactId>exec-parent</artifactId>
     <groupId>org.apache.drill.exec</groupId>
-    <version>1.6.0</version>
+    <version>1.6.0-fineo-1.0</version>
   </parent>
   <artifactId>drill-java-exec</artifactId>
   <name>exec/Java Execution Engine</name>
@@ -675,6 +675,14 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
       </plugin>
     </plugins>
     <pluginManagement>

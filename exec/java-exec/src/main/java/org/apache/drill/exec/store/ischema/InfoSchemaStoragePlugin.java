@@ -18,14 +18,20 @@
 package org.apache.drill.exec.store.ischema;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.*;
 import org.apache.drill.common.JSONOptions;
 import org.apache.drill.common.expression.SchemaPath;
@@ -63,8 +69,9 @@ public class InfoSchemaStoragePlugin extends AbstractStoragePlugin {
   public InfoSchemaGroupScan getPhysicalScan(String userName, JSONOptions selection, List<SchemaPath> columns)
       throws IOException {
     SelectedTable table = selection.getWith(context.getLpPersistence(),  SelectedTable.class);
-    return new InfoSchemaGroupScan(table);
+    return new InfoSchemaGroupScan(table, config.buildFilter(table));
   }
+
 
   @Override
   public StoragePluginConfig getConfig() {

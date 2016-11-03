@@ -17,14 +17,12 @@
  */
 package org.apache.drill.exec.store.ischema;
 
-import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.IS_CATALOG_NAME;
-import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SCHS_COL_SCHEMA_NAME;
-import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SHRD_COL_TABLE_NAME;
-import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SHRD_COL_TABLE_SCHEMA;
-
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -37,15 +35,19 @@ import org.apache.drill.exec.store.RecordReader;
 import org.apache.drill.exec.store.ischema.InfoSchemaFilter.Result;
 import org.apache.drill.exec.store.pojo.PojoRecordReader;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.IS_CATALOG_NAME;
+import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SCHS_COL_SCHEMA_NAME;
+import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SHRD_COL_TABLE_NAME;
+import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SHRD_COL_TABLE_SCHEMA;
 
 /**
  * Generates records for POJO RecordReader by scanning the given schema.
  */
-public abstract class RecordGenerator {
+public abstract class RecordGenerator<T> {
   protected InfoSchemaFilter filter;
 
   public void setInfoSchemaFilter(InfoSchemaFilter filter) {
@@ -102,7 +104,7 @@ public abstract class RecordGenerator {
     return true;
   }
 
-  public abstract RecordReader getRecordReader();
+  public abstract RecordReader getRecordReader(Function<T, T> transform);
 
   public void scanSchema(SchemaPlus root) {
     scanSchema(root.getName(), root);
@@ -146,21 +148,23 @@ public abstract class RecordGenerator {
     }
   }
 
-  public static class Catalogs extends RecordGenerator {
+  public static class Catalogs extends RecordGenerator<Records.Catalog> {
     @Override
-    public RecordReader getRecordReader() {
+    public RecordReader getRecordReader(Function<Records.Catalog, Records.Catalog> transform) {
       Records.Catalog catalogRecord =
           new Records.Catalog(IS_CATALOG_NAME,
                               "The internal metadata used by Drill", "");
-      return new PojoRecordReader<>(Records.Catalog.class, ImmutableList.of(catalogRecord).iterator());
+      Iterator<Records.Catalog> iter = ImmutableList.of(catalogRecord).iterator();
+      return new PojoRecordReader<>(Records.Catalog.class, transform == null ? iter :
+                                                           Iterators.transform(iter, transform));
     }
   }
 
-  public static class Schemata extends RecordGenerator {
+  public static class Schemata extends RecordGenerator<Records.Schema> {
     List<Records.Schema> records = Lists.newArrayList();
 
     @Override
-    public RecordReader getRecordReader() {
+    public  RecordReader getRecordReader(Function<Records.Schema, Records.Schema> transform) {
       return new PojoRecordReader<>(Records.Schema.class, records.iterator());
     }
 
@@ -173,11 +177,11 @@ public abstract class RecordGenerator {
     }
   }
 
-  public static class Tables extends RecordGenerator {
+  public static class Tables extends RecordGenerator<Records.Table> {
     List<Records.Table> records = Lists.newArrayList();
 
     @Override
-    public RecordReader getRecordReader() {
+    public RecordReader getRecordReader(Function<Records.Table,Records.Table> transform) {
       return new PojoRecordReader<>(Records.Table.class, records.iterator());
     }
 
@@ -195,11 +199,11 @@ public abstract class RecordGenerator {
     }
   }
 
-  public static class Views extends RecordGenerator {
+  public static class Views extends RecordGenerator<Records.View>{
     List<Records.View> records = Lists.newArrayList();
 
     @Override
-    public RecordReader getRecordReader() {
+    public RecordReader getRecordReader(Function<Records.View, Records.View> transform) {
       return new PojoRecordReader<>(Records.View.class, records.iterator());
     }
 
@@ -213,11 +217,11 @@ public abstract class RecordGenerator {
     }
   }
 
-  public static class Columns extends RecordGenerator {
+  public static class Columns extends RecordGenerator<Records.Column> {
     List<Records.Column> records = Lists.newArrayList();
 
     @Override
-    public RecordReader getRecordReader() {
+    public RecordReader getRecordReader(Function<Records.Column, Records.Column> transform) {
       return new PojoRecordReader<>(Records.Column.class, records.iterator());
     }
 

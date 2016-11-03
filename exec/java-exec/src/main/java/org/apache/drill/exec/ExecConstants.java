@@ -300,4 +300,6 @@ public interface ExecConstants {
   StringValidator IMPERSONATION_POLICY_VALIDATOR =
       new InboundImpersonationManager.InboundImpersonationPolicyValidator(IMPERSONATION_POLICIES_KEY, "[]");
 
+
+  String PER_USER_FILTER_RULES_KEY = "drill.exec.security.user.filter";
 }

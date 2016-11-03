@@ -22,12 +22,16 @@ import org.apache.drill.exec.planner.logical.DrillTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
+import java.util.Collection;
+import java.util.Map;
+
 public class InfoSchemaDrillTable extends DrillTable{
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(InfoSchemaDrillTable.class);
 
   private final SelectedTable table;
 
-  public InfoSchemaDrillTable(InfoSchemaStoragePlugin plugin, String storageEngineName, SelectedTable selection, StoragePluginConfig storageEngineConfig) {
+  public InfoSchemaDrillTable(InfoSchemaStoragePlugin plugin, String storageEngineName,
+    SelectedTable selection, StoragePluginConfig storageEngineConfig) {
     super(storageEngineName, plugin, selection);
     this.table = selection;
   }

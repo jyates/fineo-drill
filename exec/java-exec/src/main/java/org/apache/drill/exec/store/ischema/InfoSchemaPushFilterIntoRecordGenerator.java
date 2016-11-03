@@ -35,6 +35,8 @@ import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 public abstract class InfoSchemaPushFilterIntoRecordGenerator extends StoragePluginOptimizerRule {
 
   public static final StoragePluginOptimizerRule IS_FILTER_ON_PROJECT =
@@ -97,7 +99,8 @@ public abstract class InfoSchemaPushFilterIntoRecordGenerator extends StoragePlu
       return; //no filter pushdown ==> No transformation.
     }
 
-    final InfoSchemaGroupScan newGroupsScan = new InfoSchemaGroupScan(groupScan.getTable(), infoSchemaFilter);
+    final InfoSchemaGroupScan newGroupsScan = new InfoSchemaGroupScan(groupScan.getTable(),
+      infoSchemaFilter, groupScan.getUserFilter());
     newGroupsScan.setFilterPushedDown(true);
 
     RelNode input = ScanPrel.create(scan, filter.getTraitSet(), newGroupsScan, scan.getRowType());

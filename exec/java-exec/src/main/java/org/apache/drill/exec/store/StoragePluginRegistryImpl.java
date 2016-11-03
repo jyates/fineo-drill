@@ -34,6 +34,9 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+import com.typesafe.config.ConfigObject;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.drill.common.config.LogicalPlanPersistence;
 import org.apache.drill.common.exceptions.DrillRuntimeException;
@@ -172,8 +175,15 @@ public class StoragePluginRegistryImpl implements StoragePluginRegistry {
         }
       }
 
-      activePlugins.put(INFORMATION_SCHEMA_PLUGIN, new InfoSchemaStoragePlugin(new InfoSchemaConfig(), context,
-          INFORMATION_SCHEMA_PLUGIN));
+      InfoSchemaConfig schemaConfig;
+      try {
+        ConfigObject userFilters =
+          context.getConfig().getObject(ExecConstants.PER_USER_FILTER_RULES_KEY);
+        schemaConfig = InfoSchemaConfig.create(userFilters.toConfig());
+      } catch (ConfigException.Missing m) {
+        schemaConfig = new InfoSchemaConfig();
+      }
+      activePlugins.put(INFORMATION_SCHEMA_PLUGIN, new InfoSchemaStoragePlugin(schemaConfig, context, INFORMATION_SCHEMA_PLUGIN));
       activePlugins.put(SYS_PLUGIN, new SystemTablePlugin(SystemTablePluginConfig.INSTANCE, context, SYS_PLUGIN));
 
       return activePlugins;

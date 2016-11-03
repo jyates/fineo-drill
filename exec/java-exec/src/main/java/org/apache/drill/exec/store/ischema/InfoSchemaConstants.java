@@ -94,5 +94,4 @@ public final class InfoSchemaConstants {
   public static final String COLS_COL_DATETIME_PRECISION = "DATETIME_PRECISION";
   public static final String COLS_COL_INTERVAL_TYPE = "INTERVAL_TYPE";
   public static final String COLS_COL_INTERVAL_PRECISION = "INTERVAL_PRECISION";
-
 }

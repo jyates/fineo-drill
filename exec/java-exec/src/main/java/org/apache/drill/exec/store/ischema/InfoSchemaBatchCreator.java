@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,9 +17,6 @@
  */
 package org.apache.drill.exec.store.ischema;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.physical.impl.BatchCreator;
@@ -27,13 +24,36 @@ import org.apache.drill.exec.physical.impl.ScanBatch;
 import org.apache.drill.exec.record.RecordBatch;
 import org.apache.drill.exec.store.RecordReader;
 
-public class InfoSchemaBatchCreator implements BatchCreator<InfoSchemaSubScan>{
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(InfoSchemaBatchCreator.class);
+import java.util.Collections;
+import java.util.List;
+
+import static com.google.common.collect.Lists.newArrayList;
+
+public class InfoSchemaBatchCreator implements BatchCreator<InfoSchemaSubScan> {
+  static final org.slf4j.Logger logger =
+    org.slf4j.LoggerFactory.getLogger(InfoSchemaBatchCreator.class);
 
   @Override
-  public ScanBatch getBatch(FragmentContext context, InfoSchemaSubScan config, List<RecordBatch> children)
-      throws ExecutionSetupException {
-    RecordReader rr = config.getTable().getRecordReader(context.getRootSchema(), config.getFilter());
+  public ScanBatch getBatch(FragmentContext context, InfoSchemaSubScan config,
+    List<RecordBatch> children)
+    throws ExecutionSetupException {
+    RecordReader rr = config.getTable().getRecordReader(context.getRootSchema(),
+      combineFilters(config.getFilter(), config.getUserFilter(), context.getQueryUserName()));
     return new ScanBatch(config, context, Collections.singleton(rr).iterator());
+  }
+
+  private InfoSchemaFilter combineFilters(InfoSchemaFilter filter,
+    InfoSchemaUserFilters userFilter, String user) {
+    InfoSchemaFilter uFilter = userFilter.getFilter(user);
+    if (uFilter == null) {
+      return filter;
+    }
+    if (filter == null) {
+      return uFilter;
+    }
+
+    // turns out we actually need to combine them
+    return new InfoSchemaFilter(new InfoSchemaFilter.FunctionExprNode("booleanand",
+      newArrayList(filter.getExprRoot(), uFilter.getExprRoot())));
   }
 }

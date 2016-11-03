@@ -17,24 +17,26 @@
  */
 package org.apache.drill.exec.store.ischema;
 
-import org.apache.drill.exec.physical.base.AbstractSubScan;
-import org.apache.drill.exec.proto.UserBitShared.CoreOperatorType;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.drill.exec.physical.base.AbstractSubScan;
+import org.apache.drill.exec.proto.UserBitShared.CoreOperatorType;
 
 public class InfoSchemaSubScan extends AbstractSubScan{
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(InfoSchemaSubScan.class);
 
   private final SelectedTable table;
   private final InfoSchemaFilter filter;
+  private final InfoSchemaUserFilters userFilter;
 
   @JsonCreator
   public InfoSchemaSubScan(@JsonProperty("table") SelectedTable table,
-                           @JsonProperty("filter") InfoSchemaFilter filter) {
+    @JsonProperty("filter") InfoSchemaFilter filter,
+    @JsonProperty("userFilter") InfoSchemaUserFilters userFilter) {
     super(null);
     this.table = table;
     this.filter = filter;
+    this.userFilter = userFilter;
   }
 
   @JsonProperty("table")
@@ -47,9 +49,13 @@ public class InfoSchemaSubScan extends AbstractSubScan{
     return filter;
   }
 
+  @JsonProperty("userFilter")
+  public InfoSchemaUserFilters getUserFilter() {
+    return userFilter;
+  }
+
   @Override
   public int getOperatorType() {
     return CoreOperatorType.INFO_SCHEMA_SUB_SCAN_VALUE;
   }
-
 }

@@ -17,13 +17,13 @@
  */
 package org.apache.drill.exec.store.ischema;
 
-import java.util.Collections;
-import java.util.List;
-
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.google.common.base.Preconditions;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
-import org.apache.drill.exec.physical.EndpointAffinity;
 import org.apache.drill.exec.physical.PhysicalOperatorSetupException;
 import org.apache.drill.exec.physical.base.AbstractGroupScan;
 import org.apache.drill.exec.physical.base.GroupScan;
@@ -33,10 +33,7 @@ import org.apache.drill.exec.physical.base.ScanStats.GroupScanProperty;
 import org.apache.drill.exec.physical.base.SubScan;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.google.common.base.Preconditions;
+import java.util.List;
 
 @JsonTypeName("info-schema")
 public class InfoSchemaGroupScan extends AbstractGroupScan{
@@ -44,19 +41,22 @@ public class InfoSchemaGroupScan extends AbstractGroupScan{
 
   private final SelectedTable table;
   private final InfoSchemaFilter filter;
+  private final InfoSchemaUserFilters userFilter;
 
   private boolean isFilterPushedDown = false;
 
-  public InfoSchemaGroupScan(SelectedTable table) {
-    this(table, null);
+  public InfoSchemaGroupScan(SelectedTable table, InfoSchemaUserFilters userFilters) {
+    this(table, null, userFilters);
   }
 
   @JsonCreator
   public InfoSchemaGroupScan(@JsonProperty("table") SelectedTable table,
-                             @JsonProperty("filter") InfoSchemaFilter filter) {
+    @JsonProperty("filter") InfoSchemaFilter filter,
+    @JsonProperty("userFilter") InfoSchemaUserFilters userFilter) {
     super((String)null);
     this.table = table;
     this.filter = filter;
+    this.userFilter = userFilter;
   }
 
   private InfoSchemaGroupScan(InfoSchemaGroupScan that) {
@@ -64,6 +64,7 @@ public class InfoSchemaGroupScan extends AbstractGroupScan{
     this.table = that.table;
     this.filter = that.filter;
     this.isFilterPushedDown = that.isFilterPushedDown;
+    this.userFilter = that.userFilter;
   }
 
   @JsonProperty("table")
@@ -76,6 +77,11 @@ public class InfoSchemaGroupScan extends AbstractGroupScan{
     return filter;
   }
 
+  @JsonProperty("userFilter")
+  public InfoSchemaUserFilters getUserFilter() {
+    return userFilter;
+  }
+
   @Override
   public void applyAssignments(List<DrillbitEndpoint> endpoints) throws PhysicalOperatorSetupException {
     Preconditions.checkArgument(endpoints.size() == 1);
@@ -84,7 +90,7 @@ public class InfoSchemaGroupScan extends AbstractGroupScan{
   @Override
   public SubScan getSpecificScan(int minorFragmentId) throws ExecutionSetupException {
     Preconditions.checkArgument(minorFragmentId == 0);
-    return new InfoSchemaSubScan(table, filter);
+    return new InfoSchemaSubScan(table, filter, userFilter);
   }
 
   public ScanStats getScanStats(){
@@ -114,7 +120,7 @@ public class InfoSchemaGroupScan extends AbstractGroupScan{
 
   @Override
   public GroupScan clone(List<SchemaPath> columns) {
-    InfoSchemaGroupScan  newScan = new InfoSchemaGroupScan (this);
+    InfoSchemaGroupScan  newScan = new InfoSchemaGroupScan(this);
     return newScan;
   }
 

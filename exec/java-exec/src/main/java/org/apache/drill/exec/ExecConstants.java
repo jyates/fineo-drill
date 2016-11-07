@@ -301,5 +301,6 @@ public interface ExecConstants {
       new InboundImpersonationManager.InboundImpersonationPolicyValidator(IMPERSONATION_POLICIES_KEY, "[]");
 
 
-  String PER_USER_FILTER_RULES_KEY = "drill.exec.security.user.filter";
+  String PER_USER_ISCHEMA_FILTER_RULES_KEY = "drill.exec.security.user.ischema.filter";
+  String ISCHEMA_TRANSLATE_RULES_KEY = "drill.exec.security.user.ischema.translate";
 }

@@ -37,8 +37,13 @@ public class InfoSchemaBatchCreator implements BatchCreator<InfoSchemaSubScan> {
   public ScanBatch getBatch(FragmentContext context, InfoSchemaSubScan config,
     List<RecordBatch> children)
     throws ExecutionSetupException {
+    String userName = context.getQueryUserName();
+    InfoSchemaTranslator translator = config.getTranslator();
+    if(translator != null){
+      translator.setUser(userName);
+    }
     RecordReader rr = config.getTable().getRecordReader(context.getRootSchema(),
-      combineFilters(config.getFilter(), config.getUserFilter(), context.getQueryUserName()));
+      combineFilters(config.getFilter(), config.getUserFilter(), userName), translator);
     return new ScanBatch(config, context, Collections.singleton(rr).iterator());
   }
 

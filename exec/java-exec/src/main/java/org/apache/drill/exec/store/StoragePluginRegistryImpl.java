@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
-import com.typesafe.config.ConfigObject;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.drill.common.config.LogicalPlanPersistence;
 import org.apache.drill.common.exceptions.DrillRuntimeException;
@@ -175,21 +174,29 @@ public class StoragePluginRegistryImpl implements StoragePluginRegistry {
         }
       }
 
-      InfoSchemaConfig schemaConfig;
-      try {
-        ConfigObject userFilters =
-          context.getConfig().getObject(ExecConstants.PER_USER_FILTER_RULES_KEY);
-        schemaConfig = InfoSchemaConfig.create(userFilters.toConfig());
-      } catch (ConfigException.Missing m) {
-        schemaConfig = new InfoSchemaConfig();
-      }
-      activePlugins.put(INFORMATION_SCHEMA_PLUGIN, new InfoSchemaStoragePlugin(schemaConfig, context, INFORMATION_SCHEMA_PLUGIN));
-      activePlugins.put(SYS_PLUGIN, new SystemTablePlugin(SystemTablePluginConfig.INSTANCE, context, SYS_PLUGIN));
 
+      Config conf = context.getConfig();
+      InfoSchemaConfig schemaConfig =
+        InfoSchemaConfig.newBuilder().withFilters(
+          getSubConfigSafe(conf, ExecConstants.PER_USER_ISCHEMA_FILTER_RULES_KEY)).withTranslator(
+          getSubConfigSafe(conf, ExecConstants.ISCHEMA_TRANSLATE_RULES_KEY))
+                        .build();
+      activePlugins.put(INFORMATION_SCHEMA_PLUGIN,
+        new InfoSchemaStoragePlugin(schemaConfig, context, INFORMATION_SCHEMA_PLUGIN));
+      activePlugins.put(SYS_PLUGIN,
+        new SystemTablePlugin(SystemTablePluginConfig.INSTANCE, context, SYS_PLUGIN));
       return activePlugins;
     } catch (IOException e) {
       logger.error("Failure setting up storage plugins.  Drillbit exiting.", e);
       throw new IllegalStateException(e);
+    }
+  }
+
+  private Config getSubConfigSafe(Config config, String key) {
+    try {
+      return config.getObject(key).toConfig();
+    } catch (ConfigException.Missing m) {
+      return null;
     }
   }
 

@@ -18,6 +18,11 @@
 
 package org.apache.drill.exec.store.ischema;
 
+import com.google.common.collect.ImmutableList;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexNode;
 import org.apache.drill.common.expression.LogicalExpression;
 import org.apache.drill.exec.physical.base.GroupScan;
 import org.apache.drill.exec.planner.logical.DrillOptiq;
@@ -28,14 +33,6 @@ import org.apache.drill.exec.planner.physical.PrelUtil;
 import org.apache.drill.exec.planner.physical.ProjectPrel;
 import org.apache.drill.exec.planner.physical.ScanPrel;
 import org.apache.drill.exec.store.StoragePluginOptimizerRule;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.rex.RexNode;
-
-import com.google.common.collect.ImmutableList;
-
-import static com.google.common.collect.Lists.newArrayList;
 
 public abstract class InfoSchemaPushFilterIntoRecordGenerator extends StoragePluginOptimizerRule {
 
@@ -100,7 +97,7 @@ public abstract class InfoSchemaPushFilterIntoRecordGenerator extends StoragePlu
     }
 
     final InfoSchemaGroupScan newGroupsScan = new InfoSchemaGroupScan(groupScan.getTable(),
-      infoSchemaFilter, groupScan.getUserFilter());
+      infoSchemaFilter, groupScan.getUserFilter(), groupScan.getTranslator());
     newGroupsScan.setFilterPushedDown(true);
 
     RelNode input = ScanPrel.create(scan, filter.getTraitSet(), newGroupsScan, scan.getRowType());

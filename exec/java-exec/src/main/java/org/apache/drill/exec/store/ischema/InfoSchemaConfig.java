@@ -20,6 +20,9 @@ package org.apache.drill.exec.store.ischema;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.InjectableValues;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.typesafe.config.Config;
@@ -28,11 +31,11 @@ import com.typesafe.config.ConfigUtil;
 import com.typesafe.config.ConfigValue;
 import org.apache.drill.common.logical.StoragePluginConfig;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SCHS_COL_CATALOG_NAME;
 import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SCHS_COL_SCHEMA_NAME;
 import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SHRD_COL_TABLE_NAME;
 import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SHRD_COL_TABLE_SCHEMA;
@@ -46,6 +49,7 @@ public class InfoSchemaConfig extends StoragePluginConfig {
   private Map<String, Collection<String>> tableFilters;
   private Map<String, Collection<String>> viewFilters;
   private Map<String, Collection<String>> columnFilters;
+  private InfoSchemaTranslator translator;
 
   public InfoSchemaConfig() {
   }
@@ -75,10 +79,10 @@ public class InfoSchemaConfig extends StoragePluginConfig {
         filters.add(SHRD_COL_TABLE_NAME, tableFilters);
         filters.add(SHRD_COL_TABLE_SCHEMA, tableSchemaFilters);
         break;
-        // schemata fields:
-        // CATALOG_NAME, SCHEMA_NAME, SCHEMA_OWNER, TYPE, IS_MUTABLE
-        //  * CATALOG_NAME => always DRILL, so skip it
-        //  * SCHEMA_NAME => the full schema's that are available
+      // schemata fields:
+      // CATALOG_NAME, SCHEMA_NAME, SCHEMA_OWNER, TYPE, IS_MUTABLE
+      //  * CATALOG_NAME => always DRILL, so skip it
+      //  * SCHEMA_NAME => the full schema's that are available
       case SCHEMATA:
         filters.add(SCHS_COL_SCHEMA_NAME, tableSchemaFilters);
         break;
@@ -97,18 +101,6 @@ public class InfoSchemaConfig extends StoragePluginConfig {
   @Override
   public boolean equals(Object o) {
     return o instanceof InfoSchemaConfig;
-  }
-
-  public static InfoSchemaConfig create(Config userFilters) {
-    InfoSchemaConfig config = new InfoSchemaConfig();
-    if (userFilters != null) {
-      config.setCatalogFilters(getFilters(userFilters, "catalogs"));
-      config.setTableSchemaFilters(getFilters(userFilters, "schemas"));
-      config.setTableFilters(getFilters(userFilters, "tables"));
-      config.setViewFilters(getFilters(userFilters, "views"));
-      config.setColumnFilters(getFilters(userFilters, "columns"));
-    }
-    return config;
   }
 
   private static Map<String, Collection<String>> getFilters(Config userFilter, String type) {
@@ -172,5 +164,59 @@ public class InfoSchemaConfig extends StoragePluginConfig {
 
   public void setColumnFilters(Map<String, Collection<String>> columnFilters) {
     this.columnFilters = columnFilters;
+  }
+
+  public static InfoSchemaConfig.Builder newBuilder() {
+    return new Builder();
+  }
+
+  public void setTranslator(InfoSchemaTranslator translator) {
+    this.translator = translator;
+  }
+
+  public InfoSchemaTranslator getTranslator() {
+    return translator;
+  }
+
+  public static class Builder {
+
+    private Config userFilters;
+    private Config translator;
+
+    public Builder withFilters(Config userFilters) {
+      this.userFilters = userFilters;
+      return this;
+    }
+
+    public Builder withTranslator(Config object) {
+      this.translator = object;
+      return this;
+    }
+
+    public InfoSchemaConfig build() {
+      InfoSchemaConfig config = new InfoSchemaConfig();
+      if (userFilters != null) {
+        config.setCatalogFilters(getFilters(userFilters, "catalogs"));
+        config.setTableSchemaFilters(getFilters(userFilters, "schemas"));
+        config.setTableFilters(getFilters(userFilters, "tables"));
+        config.setViewFilters(getFilters(userFilters, "views"));
+        config.setColumnFilters(getFilters(userFilters, "columns"));
+      }
+      if (translator != null) {
+        ObjectMapper mapper = new ObjectMapper();
+        InjectableValues inject = new InjectableValues.Std();
+        Map<String, Object> map = translator.root().unwrapped();
+        try {
+          String s = mapper.writeValueAsString(map);
+          config.setTranslator(mapper.setInjectableValues(inject).readValue(s,
+            InfoSchemaTranslator.class));
+        } catch (JsonProcessingException e) {
+          throw new RuntimeException(e);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      return config;
+    }
   }
 }

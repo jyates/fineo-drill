@@ -52,11 +52,12 @@ public enum SelectedTable{
     this.tableDef = tableDef;
   }
 
-  public RecordReader getRecordReader(SchemaPlus rootSchema, InfoSchemaFilter filter) {
+  public RecordReader getRecordReader(SchemaPlus rootSchema, InfoSchemaFilter filter,
+    InfoSchemaTranslator translator) {
     RecordGenerator recordGenerator = tableDef.getRecordGenerator();
     recordGenerator.setInfoSchemaFilter(filter);
     recordGenerator.scanSchema(rootSchema);
-    return recordGenerator.getRecordReader(null);
+    return recordGenerator.getRecordReader(translator);
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {

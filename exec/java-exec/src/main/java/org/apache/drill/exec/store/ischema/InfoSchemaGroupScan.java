@@ -42,29 +42,33 @@ public class InfoSchemaGroupScan extends AbstractGroupScan{
   private final SelectedTable table;
   private final InfoSchemaFilter filter;
   private final InfoSchemaUserFilters userFilter;
+  private final InfoSchemaTranslator translator;
 
   private boolean isFilterPushedDown = false;
 
-  public InfoSchemaGroupScan(SelectedTable table, InfoSchemaUserFilters userFilters) {
-    this(table, null, userFilters);
+  public InfoSchemaGroupScan(SelectedTable table, InfoSchemaUserFilters userFilters, InfoSchemaTranslator translator) {
+    this(table, null, userFilters, translator);
   }
 
   @JsonCreator
   public InfoSchemaGroupScan(@JsonProperty("table") SelectedTable table,
     @JsonProperty("filter") InfoSchemaFilter filter,
-    @JsonProperty("userFilter") InfoSchemaUserFilters userFilter) {
+    @JsonProperty("userFilter") InfoSchemaUserFilters userFilter,
+    @JsonProperty("translator") InfoSchemaTranslator translator) {
     super((String)null);
     this.table = table;
     this.filter = filter;
     this.userFilter = userFilter;
+    this.translator = translator;
   }
 
-  private InfoSchemaGroupScan(InfoSchemaGroupScan that) {
+  private InfoSchemaGroupScan(SelectedTable table, InfoSchemaGroupScan that) {
     super(that);
     this.table = that.table;
     this.filter = that.filter;
     this.isFilterPushedDown = that.isFilterPushedDown;
     this.userFilter = that.userFilter;
+    this.translator = that.translator;
   }
 
   @JsonProperty("table")
@@ -90,7 +94,7 @@ public class InfoSchemaGroupScan extends AbstractGroupScan{
   @Override
   public SubScan getSpecificScan(int minorFragmentId) throws ExecutionSetupException {
     Preconditions.checkArgument(minorFragmentId == 0);
-    return new InfoSchemaSubScan(table, filter, userFilter);
+    return new InfoSchemaSubScan(table, filter, userFilter, translator);
   }
 
   public ScanStats getScanStats(){
@@ -110,7 +114,7 @@ public class InfoSchemaGroupScan extends AbstractGroupScan{
 
   @Override
   public PhysicalOperator getNewWithChildren(List<PhysicalOperator> children) throws ExecutionSetupException {
-    return new InfoSchemaGroupScan (this);
+    return new InfoSchemaGroupScan(table, this);
   }
 
   @Override
@@ -120,7 +124,7 @@ public class InfoSchemaGroupScan extends AbstractGroupScan{
 
   @Override
   public GroupScan clone(List<SchemaPath> columns) {
-    InfoSchemaGroupScan  newScan = new InfoSchemaGroupScan(this);
+    InfoSchemaGroupScan  newScan = new InfoSchemaGroupScan(table, this);
     return newScan;
   }
 
@@ -131,5 +135,9 @@ public class InfoSchemaGroupScan extends AbstractGroupScan{
   @JsonIgnore
   public boolean isFilterPushedDown() {
     return isFilterPushedDown;
+  }
+
+  public InfoSchemaTranslator getTranslator() {
+    return translator;
   }
 }

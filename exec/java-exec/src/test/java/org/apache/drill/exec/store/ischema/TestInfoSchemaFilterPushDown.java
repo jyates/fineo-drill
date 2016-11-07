@@ -27,8 +27,10 @@ public class TestInfoSchemaFilterPushDown extends PlanTestBase {
 
   @Test
   public void testFilterPushdown_Equal() throws Exception {
-    final String query = "SELECT * FROM INFORMATION_SCHEMA.`TABLES` WHERE TABLE_SCHEMA='INFORMATION_SCHEMA'";
-    final String scan = "Scan(groupscan=[TABLES, filter=equal(Field=TABLE_SCHEMA,Literal=INFORMATION_SCHEMA)])";
+    final String query = "SELECT * FROM INFORMATION_SCHEMA.`TABLES` WHERE "
+                         + "TABLE_NAME='INFORMATION_SCHEMA'";
+    final String scan = "Scan(groupscan=[TABLES, filter=equal(Field=TABLE_NAME,"
+                        + "Literal=INFORMATION_SCHEMA)])";
 
     testHelper(query, scan, false);
   }

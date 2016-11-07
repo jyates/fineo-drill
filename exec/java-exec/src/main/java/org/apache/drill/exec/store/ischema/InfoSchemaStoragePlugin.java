@@ -69,7 +69,7 @@ public class InfoSchemaStoragePlugin extends AbstractStoragePlugin {
   public InfoSchemaGroupScan getPhysicalScan(String userName, JSONOptions selection, List<SchemaPath> columns)
       throws IOException {
     SelectedTable table = selection.getWith(context.getLpPersistence(),  SelectedTable.class);
-    return new InfoSchemaGroupScan(table, config.buildFilter(table));
+    return new InfoSchemaGroupScan(table, config.buildFilter(table), config.getTranslator());
   }
 
 

@@ -35,6 +35,7 @@ import org.apache.drill.exec.store.RecordReader;
 import org.apache.drill.exec.store.ischema.InfoSchemaFilter.Result;
 import org.apache.drill.exec.store.pojo.PojoRecordReader;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -148,6 +149,13 @@ public abstract class RecordGenerator<T> {
     }
   }
 
+  private static <T> Iterator<T> wrap(Iterator<T> iter, @Nullable Function<T, T> func){
+    if(func == null){
+      return iter;
+    }
+    return Iterators.transform(iter, func);
+  }
+
   public static class Catalogs extends RecordGenerator<Records.Catalog> {
     @Override
     public RecordReader getRecordReader(Function<Records.Catalog, Records.Catalog> transform) {
@@ -155,8 +163,8 @@ public abstract class RecordGenerator<T> {
           new Records.Catalog(IS_CATALOG_NAME,
                               "The internal metadata used by Drill", "");
       Iterator<Records.Catalog> iter = ImmutableList.of(catalogRecord).iterator();
-      return new PojoRecordReader<>(Records.Catalog.class, transform == null ? iter :
-                                                           Iterators.transform(iter, transform));
+      return new PojoRecordReader<>(Records.Catalog.class, wrap(iter, transform));
+
     }
   }
 
@@ -165,7 +173,7 @@ public abstract class RecordGenerator<T> {
 
     @Override
     public  RecordReader getRecordReader(Function<Records.Schema, Records.Schema> transform) {
-      return new PojoRecordReader<>(Records.Schema.class, records.iterator());
+      return new PojoRecordReader<>(Records.Schema.class, wrap(records.iterator(), transform));
     }
 
     @Override
@@ -182,7 +190,7 @@ public abstract class RecordGenerator<T> {
 
     @Override
     public RecordReader getRecordReader(Function<Records.Table,Records.Table> transform) {
-      return new PojoRecordReader<>(Records.Table.class, records.iterator());
+      return new PojoRecordReader<>(Records.Table.class, wrap(records.iterator(), transform));
     }
 
     @Override
@@ -204,7 +212,7 @@ public abstract class RecordGenerator<T> {
 
     @Override
     public RecordReader getRecordReader(Function<Records.View, Records.View> transform) {
-      return new PojoRecordReader<>(Records.View.class, records.iterator());
+      return new PojoRecordReader<>(Records.View.class, wrap(records.iterator(), transform));
     }
 
     @Override
@@ -222,7 +230,7 @@ public abstract class RecordGenerator<T> {
 
     @Override
     public RecordReader getRecordReader(Function<Records.Column, Records.Column> transform) {
-      return new PojoRecordReader<>(Records.Column.class, records.iterator());
+      return new PojoRecordReader<>(Records.Column.class, wrap(records.iterator(), transform));
     }
 
     @Override

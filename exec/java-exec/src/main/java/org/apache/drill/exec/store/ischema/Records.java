@@ -298,7 +298,25 @@ public class Records {
           this.INTERVAL_PRECISION = null;
         break;
       }
+    }
 
+    public Column(String catalog, String schemaName, String tableName, Column other) {
+      this.TABLE_CATALOG = catalog;
+      this.TABLE_SCHEMA = schemaName;
+      this.TABLE_NAME = tableName;
+      this.COLUMN_NAME = other.COLUMN_NAME;
+      this.ORDINAL_POSITION = other.ORDINAL_POSITION;
+      this.COLUMN_DEFAULT = other.COLUMN_DEFAULT;
+      this.IS_NULLABLE = other.IS_NULLABLE;
+      this.DATA_TYPE = other.DATA_TYPE;
+      this.CHARACTER_MAXIMUM_LENGTH = other.CHARACTER_MAXIMUM_LENGTH;
+      this.CHARACTER_OCTET_LENGTH = other.CHARACTER_OCTET_LENGTH;
+      this.NUMERIC_PRECISION = other.NUMERIC_PRECISION;
+      this.NUMERIC_PRECISION_RADIX = other.NUMERIC_PRECISION_RADIX;
+      this.NUMERIC_SCALE = other.NUMERIC_SCALE;
+      this.DATETIME_PRECISION = other.DATETIME_PRECISION;
+      this.INTERVAL_TYPE = other.INTERVAL_TYPE;
+      this.INTERVAL_PRECISION = other.INTERVAL_PRECISION;
     }
   }
 

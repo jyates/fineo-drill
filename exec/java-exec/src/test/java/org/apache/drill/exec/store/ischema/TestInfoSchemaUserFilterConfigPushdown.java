@@ -17,14 +17,12 @@
  */
 package org.apache.drill.exec.store.ischema;
 
-import com.google.common.base.Strings;
 import org.apache.drill.PlanTestBase;
 import org.apache.drill.QueryTestUtil;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.client.DrillClient;
 import org.apache.drill.exec.proto.UserBitShared;
-import org.apache.drill.exec.proto.UserProtos;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -38,7 +36,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.typesafe.config.ConfigValueFactory.fromMap;
 import static org.junit.Assert.assertEquals;
 
-public class TestInfoSchemaUserConfigPushdown extends PlanTestBase {
+public class TestInfoSchemaUserFilterConfigPushdown extends PlanTestBase {
 
   @BeforeClass
   public static void setupUserFilters() {
@@ -61,7 +59,7 @@ public class TestInfoSchemaUserConfigPushdown extends PlanTestBase {
     userMap.put("anonymous", newArrayList("CATALOGS"));
     filters.put("tables", userMap);
 
-    conf = new DrillConfig(conf.withValue(ExecConstants.PER_USER_FILTER_RULES_KEY, fromMap
+    conf = new DrillConfig(conf.withValue(ExecConstants.PER_USER_ISCHEMA_FILTER_RULES_KEY, fromMap
       (filters)), false);
 
     updateTestCluster(1, conf);

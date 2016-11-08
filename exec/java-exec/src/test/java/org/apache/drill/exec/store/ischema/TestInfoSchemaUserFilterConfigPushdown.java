@@ -28,12 +28,16 @@ import org.junit.Test;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.typesafe.config.ConfigValueFactory.fromMap;
+import static org.apache.drill.exec.store.ischema.CollectingRecordListener.optionalVarchar;
+import static org.apache.drill.exec.store.ischema.CollectingRecordListener.schemaRow;
+import static org.apache.drill.exec.store.ischema.CollectingRecordListener.verifyNextRow;
 import static org.junit.Assert.assertEquals;
 
 public class TestInfoSchemaUserFilterConfigPushdown extends PlanTestBase {
@@ -56,7 +60,9 @@ public class TestInfoSchemaUserFilterConfigPushdown extends PlanTestBase {
     newHashMap();
 
     Map<String, Collection<String>> userMap = new HashMap<>();
-    userMap.put("anonymous", newArrayList("CATALOGS"));
+    // anyone can see the 'catalogs' table, but only root can see the 'views' table
+    userMap.put(".*", newArrayList("CATALOGS"));
+    userMap.put("sys", newArrayList("boot"));
     filters.put("tables", userMap);
 
     conf = new DrillConfig(conf.withValue(ExecConstants.PER_USER_ISCHEMA_FILTER_RULES_KEY, fromMap
@@ -144,5 +150,34 @@ public class TestInfoSchemaUserFilterConfigPushdown extends PlanTestBase {
     } finally {
       client.close();
     }
+  }
+
+  @Test
+  public void testOrQueryUserNameRegexGroupMatching() throws Exception {
+    // connect as the 'root' user.
+    Properties props = new Properties();
+    props.put("user", "sys");
+    DrillClient client = null;
+    try {
+      client = QueryTestUtil.createClient(config, serviceSet, 2, props);
+
+      // and attempt to read the dfs.root schema
+      final String query = "SELECT * FROM INFORMATION_SCHEMA.`TABLES`";
+      List<Map<String, String>> rows = CollectingRecordListener.runQuery(client, query);
+      assertEquals("Wrong number of rows! Got rows: " + rows, 2, rows.size());
+      verifyNextRow(0, rows, tableRow("DRILL", "TABLE", "CATALOGS", "INFORMATION_SCHEMA"));
+      verifyNextRow(1, rows, tableRow("DRILL", "TABLE", "boot", "sys"));
+    } finally {
+      client.close();
+    }
+  }
+
+  private Map<String, String> tableRow(String catalog, String type, String name, String schema) {
+    Map<String, String> row = new HashMap<>();
+    row.put(optionalVarchar("TABLE_CATALOG"), catalog);
+    row.put(optionalVarchar("TABLE_TYPE"), type);
+    row.put(optionalVarchar("TABLE_NAME"), name);
+    row.put(optionalVarchar("TABLE_SCHEMA"), schema);
+    return row;
   }
 }

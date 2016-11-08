@@ -90,7 +90,12 @@ public class InfoSchemaUserFilters {
       }
     }
 
-    return nodes.isEmpty() ? null : new InfoSchemaFilter(And(nodes));
+    // has to pass one of the applied sets of filters per matching user regex.
+    // For example,
+    //  -  .* -> "table1"
+    //  - auser -> "table2"
+    // Will allow 'auser' to see both table1 and table2, but any other user can only see table1
+    return nodes.isEmpty() ? null : new InfoSchemaFilter(Or(nodes));
   }
 
   /**

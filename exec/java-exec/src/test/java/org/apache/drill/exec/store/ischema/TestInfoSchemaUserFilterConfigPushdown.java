@@ -68,34 +68,34 @@ public class TestInfoSchemaUserFilterConfigPushdown extends PlanTestBase {
   /*
   Default results from:
   -> SELECT * FROM INFORMATION_SCHEMA.`CATALOGS`
-  CATALOG_NAME	CATALOG_DESCRIPTION	CATALOG_CONNECT
-  DRILL	The internal metadata used by Drill
+  CATALOG_NAME    CATALOG_DESCRIPTION    CATALOG_CONNECT
+  DRILL    The internal metadata used by Drill
 
   -> SELECT * FROM INFORMATION_SCHEMA.`SCHEMATA`:
-  CATALOG_NAME	SCHEMA_NAME	SCHEMA_OWNER	TYPE	IS_MUTABLE
-  DRILL	INFORMATION_SCHEMA	<owner>	ischema	NO
-  DRILL	cp.default	<owner>	file	NO
-  DRILL	dfs.default	<owner>	file	NO
-  DRILL	dfs.root	<owner>	file	NO
-  DRILL	dfs.tmp	<owner>	file	NO
-  DRILL	dfs_test.default	<owner>	file	NO
-  DRILL	dfs_test.home	<owner>	file	NO
-  DRILL	dfs_test.tmp	<owner>	file	YES
-  DRILL	sys	<owner>	system-tables	NO
+  CATALOG_NAME    SCHEMA_NAME    SCHEMA_OWNER    TYPE    IS_MUTABLE
+  DRILL    INFORMATION_SCHEMA    <owner>    ischema    NO
+  DRILL    cp.default    <owner>    file    NO
+  DRILL    dfs.default    <owner>    file    NO
+  DRILL    dfs.root    <owner>    file    NO
+  DRILL    dfs.tmp    <owner>    file    NO
+  DRILL    dfs_test.default    <owner>    file    NO
+  DRILL    dfs_test.home    <owner>    file    NO
+  DRILL    dfs_test.tmp    <owner>    file    YES
+  DRILL    sys    <owner>    system-tables    NO
 
     -> SELECT * FROM INFORMATION_SCHEMA.`TABLES`:
-  TABLE_CATALOG	TABLE_SCHEMA	TABLE_NAME	TABLE_TYPE
-  DRILL	INFORMATION_SCHEMA	CATALOGS	TABLE
-  DRILL	INFORMATION_SCHEMA	COLUMNS	TABLE
-  DRILL	INFORMATION_SCHEMA	SCHEMATA	TABLE
-  DRILL	INFORMATION_SCHEMA	TABLES	TABLE
-  DRILL	INFORMATION_SCHEMA	VIEWS	TABLE
-  DRILL	sys	boot	TABLE
-  DRILL	sys	drillbits	TABLE
-  DRILL	sys	memory	TABLE
-  DRILL	sys	options	TABLE
-  DRILL	sys	threads	TABLE
-  DRILL	sys	version	TABLE
+  TABLE_CATALOG    TABLE_SCHEMA    TABLE_NAME    TABLE_TYPE
+  DRILL    INFORMATION_SCHEMA    CATALOGS    TABLE
+  DRILL    INFORMATION_SCHEMA    COLUMNS    TABLE
+  DRILL    INFORMATION_SCHEMA    SCHEMATA    TABLE
+  DRILL    INFORMATION_SCHEMA    TABLES    TABLE
+  DRILL    INFORMATION_SCHEMA    VIEWS    TABLE
+  DRILL    sys    boot    TABLE
+  DRILL    sys    drillbits    TABLE
+  DRILL    sys    memory    TABLE
+  DRILL    sys    options    TABLE
+  DRILL    sys    threads    TABLE
+  DRILL    sys    version    TABLE
    */
 
   @Test

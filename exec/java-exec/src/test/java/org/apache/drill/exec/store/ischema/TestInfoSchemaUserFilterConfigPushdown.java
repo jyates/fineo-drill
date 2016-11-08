@@ -60,6 +60,8 @@ public class TestInfoSchemaUserFilterConfigPushdown extends PlanTestBase {
     newHashMap();
 
     Map<String, Collection<String>> userMap = new HashMap<>();
+    // ensure "anon.*" users can only read the catalogs table in the INFO_SCHEMA.
+    userMap.put("anon.*", newArrayList("CATALOGS"));
     // anyone can see the 'catalogs' table, but only root can see the 'views' table
     userMap.put(".*", newArrayList("CATALOGS"));
     userMap.put("sys", newArrayList("boot"));

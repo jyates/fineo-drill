@@ -34,6 +34,30 @@ import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * Filters for the schema reading by various external users.
+ * <p>
+ * These have some slightly non-intuitive rules about how things are combined.
+ * They are:
+ * <ol>
+ * <li>Users are matched with a standard Java regex pattern matching</li>
+ * <li>Table names are matching with SQL evaluated patterns (e.g. ".*" in Java is "%" in SQL)</li>
+ * <li>Multiple conditions for the same user name specification are AND'd together
+ * <ul>
+ * <li>The user name specification much match exactly</li>
+ * </ul>
+ * </li>
+ * <li>Multiple matching conditions for the same user name are OR'd together
+ * <ul>
+ * <li>For instance, ".*" and "auser" would match "auser" and their conditions would be OR'ed
+ * together</li>
+ * </ul></li>
+ * <li>Use can use replacements in the condition. Supported replacements are:
+ * <ul>
+ * <li>${name} = the name of the current user making the query</li>
+ * </ul>
+ * Only one pass is made over conditions (no nested replacements are supported).
+ * </li>
+ * </ol>
+ * </p>
  */
 @JsonTypeName("info-schema-user-filter")
 public class InfoSchemaUserFilters {

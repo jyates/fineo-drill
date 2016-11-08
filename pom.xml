@@ -46,6 +46,8 @@
     <hadoop.version>2.7.1</hadoop.version>
     <fmpp.version>0.9.15</fmpp.version>
     <freemarker.version>2.3.21</freemarker.version>
+
+    <test.exclude.pattern></test.exclude.pattern>
   </properties>
 
   <scm>
@@ -424,6 +426,9 @@
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
+            <excludes>
+              <exclude>${test.exclude.pattern}</exclude>
+            </excludes>
           </configuration>
         </plugin>
         <plugin>

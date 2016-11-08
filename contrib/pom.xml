@@ -32,13 +32,46 @@
   </dependencies>
 
   <modules>
-    <module>storage-hbase</module>
-    <module>storage-hive</module>
-    <module>storage-mongo</module>
-    <module>storage-jdbc</module>
-    <module>storage-kudu</module>
     <module>sqlline</module>
     <module>data</module>
-    <module>gis</module>
   </modules>
+
+  <profiles>
+    <profile>
+      <id>with-hbase</id>
+      <modules>
+        <module>storage-hbase</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>with-hive</id>
+      <modules>
+        <module>storage-hive</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>with-mongo</id>
+      <modules>
+        <module>storage-mongo</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>with-jdbc</id>
+      <modules>
+        <module>storage-jdbc</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>with-kudu</id>
+      <modules>
+        <module>storage-kudu</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>with-gis</id>
+      <modules>
+        <module>gis</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>

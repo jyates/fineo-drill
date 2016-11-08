@@ -39,11 +39,13 @@ public class InfoSchemaBatchCreator implements BatchCreator<InfoSchemaSubScan> {
     throws ExecutionSetupException {
     String userName = context.getQueryUserName();
     InfoSchemaTranslator translator = config.getTranslator();
-    if(translator != null){
+    if (translator != null) {
       translator.setUser(userName);
     }
-    RecordReader rr = config.getTable().getRecordReader(context.getRootSchema(),
-      combineFilters(config.getFilter(), config.getUserFilter(), userName), translator);
+    InfoSchemaFilter filter = combineFilters(config.getFilter(), config.getUserFilter(), userName);
+    logger.debug("InfoSchema final filter: {}", filter);
+    RecordReader rr =
+      config.getTable().getRecordReader(context.getRootSchema(), filter, translator);
     return new ScanBatch(config, context, Collections.singleton(rr).iterator());
   }
 
@@ -53,6 +55,7 @@ public class InfoSchemaBatchCreator implements BatchCreator<InfoSchemaSubScan> {
     if (uFilter == null) {
       return filter;
     }
+    logger.debug("User [{}] ischema filter: {}", user, uFilter);
     if (filter == null) {
       return uFilter;
     }

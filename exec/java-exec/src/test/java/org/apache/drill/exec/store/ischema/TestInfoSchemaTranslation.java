@@ -19,6 +19,7 @@ package org.apache.drill.exec.store.ischema;
 
 import org.apache.drill.PlanTestBase;
 import org.apache.drill.QueryTestUtil;
+import org.apache.drill.TestBuilder;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.ExecConstants;
 import org.junit.BeforeClass;
@@ -30,14 +31,13 @@ import java.util.Map;
 import java.util.Properties;
 
 import static com.typesafe.config.ConfigValueFactory.fromMap;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Translation should occur for a given user (or regex of a user) to the specified class
  */
 public class TestInfoSchemaTranslation extends PlanTestBase {
+
+  public static final String ANON = "anonymous";
 
   @BeforeClass
   public static void setupUserFilters() {
@@ -59,39 +59,38 @@ public class TestInfoSchemaTranslation extends PlanTestBase {
 
   @Test
   public void testSchemataRename() throws Exception {
-    final String query = "SELECT * FROM INFORMATION_SCHEMA.`SCHEMATA`";
-    List<Map<String, String>> rows = runQuery(query);
-    assertEquals("Wrong number of rows returned! Got rows: " + rows, 9, rows.size());
-    CollectingRecordListener.verifyNextRow(0, rows, CollectingRecordListener
-      .schemaRow("anonymous", "ischema", "anonymous", "anonymous", false));
+    TestBuilder tb = testBuilder()
+      .sqlQuery("SELECT * FROM INFORMATION_SCHEMA.`SCHEMATA`")
+      .baselineColumns("CATALOG_NAME",
+        "TYPE",
+        "SCHEMA_NAME",
+        "SCHEMA_OWNER",
+        "IS_MUTABLE")
+      .ordered()
+      .baselineValues(ANON, "ischema", ANON, ANON, "NO");
     for (int i = 0; i < 5; i++) {
-      CollectingRecordListener.verifyNextRow(i + 1, rows, CollectingRecordListener
-        .schemaRow("anonymous", "file", "anonymous", "anonymous", false));
+      tb = tb.baselineValues(ANON, "file", ANON, ANON, "NO");
     }
-    CollectingRecordListener.verifyNextRow(6, rows, CollectingRecordListener
-      .schemaRow("anonymous", "file", "anonymous", "anonymous", false));
-    CollectingRecordListener.verifyNextRow(7, rows, CollectingRecordListener
-      .schemaRow("anonymous", "file", "anonymous", "anonymous", true));
-    CollectingRecordListener.verifyNextRow(8, rows,
-      CollectingRecordListener
-        .schemaRow("anonymous", "system-tables", "anonymous", "anonymous", false));
-    assertTrue(rows.isEmpty());
+    tb.baselineValues(ANON, "file", ANON, ANON, "NO")
+      .baselineValues(ANON, "file", ANON, ANON, "YES")
+      .baselineValues(ANON, "system-tables", ANON, ANON, "NO")
+      .build().run();
   }
 
   @Test
   public void testCatalogRename() throws Exception {
-    final String query = "SELECT * FROM INFORMATION_SCHEMA.`CATALOGS`";
-    List<Map<String, String>> rows = runQuery(query);
-    assertEquals("Wrong number of rows returned! Got rows: " + rows, 1, rows.size());
-    Map<String, String> row = new HashMap<>();
-    row.put(CollectingRecordListener.optionalVarchar("CATALOG_NAME"), "anonymous");
-    row.put(CollectingRecordListener.optionalVarchar("CATALOG_DESCRIPTION"), "The internal metadata used by Drill");
-    row.put(CollectingRecordListener.optionalVarchar("CATALOG_CONNECT"), "");
-    CollectingRecordListener.verifyNextRow(0, rows, row);
-  }
-
-  private List<Map<String, String>> runQuery(String query) throws Exception {
-    return CollectingRecordListener.runQuery(client, query);
+    testBuilder()
+      .sqlQuery("SELECT * FROM INFORMATION_SCHEMA.`CATALOGS`")
+      .baselineColumns("CATALOG_NAME",
+        "CATALOG_DESCRIPTION",
+        "CATALOG_CONNECT"
+      )
+      .ordered()
+      .baselineValues(
+        ANON,
+        "The internal metadata used by Drill",
+        "")
+      .build().run();
   }
 
   /**

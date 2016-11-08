@@ -96,9 +96,8 @@ public class CollectingRecordListener implements UserResultsListener {
     List<String> columns = new ArrayList<>();
     for (VectorWrapper<?> vw : va) {
       MaterializedField field = vw.getValueVector().getField();
-      columns.add(field.getPath() + "<" + field.getType().getMinorType() + "(" + field.getType()
-                                                                                      .getMode()
-                  + ")" + ">");
+      columns.add(field.getPath() + "<" + field.getType().getMinorType() +
+                  "(" + field.getType() .getMode() + ")" + ">");
     }
 
     int rows = va.getRecordCount();
@@ -157,8 +156,7 @@ public class CollectingRecordListener implements UserResultsListener {
   }
 
   static Map<String, String> schemaRow(String catalog, String type, String schemaName,
-    String
-      SchemaOwner, boolean mutable) {
+    String SchemaOwner, boolean mutable) {
     Map<String, String> row = new HashMap<>();
     row.put(optionalVarchar("CATALOG_NAME"), catalog);
     row.put(optionalVarchar("TYPE"), type);
@@ -168,8 +166,7 @@ public class CollectingRecordListener implements UserResultsListener {
     return row;
   }
 
-  static void verifyNextRow(int i, List<Map<String, String>> list, Map<String,
-    String> row) {
+  static void verifyNextRow(int i, List<Map<String, String>> list, Map<String, String> row) {
     assertFalse(i + ") Expected another row, but none present!", list.isEmpty());
     Map<String, String> actual = list.remove(0);
     assertEquals(i + ") Mismatch!", row, actual);

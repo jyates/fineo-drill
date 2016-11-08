@@ -100,16 +100,35 @@ public class TestInfoSchemaUserFilterConfigPushdown extends PlanTestBase {
 
   @Test
   public void testAnonymousUserPatternMatchingAndOnlyInformationSchema() throws Exception {
-    final String query = "SELECT * FROM INFORMATION_SCHEMA.`SCHEMATA`";
-    assertEquals(1, QueryTestUtil.testRunAndPrint(client, UserBitShared.QueryType.SQL, query));
+    testBuilder()
+      .sqlQuery("SELECT * FROM INFORMATION_SCHEMA.`SCHEMATA`")
+      .baselineColumns("CATALOG_NAME",
+        "TYPE",
+        "SCHEMA_NAME",
+        "SCHEMA_OWNER",
+        "IS_MUTABLE")
+      .ordered()
+      .baselineValues("DRILL", "ischema", "INFORMATION_SCHEMA", "<owner>", "NO")
+      .build().run();
   }
 
   @Test
   public void testAnonymousUserCanOnlySeeCatalogTable() throws Exception {
-    final String query = "SELECT * FROM INFORMATION_SCHEMA.`TABLES`";
-    assertEquals(1, QueryTestUtil.testRunAndPrint(client, UserBitShared.QueryType.SQL, query));
+    testBuilder()
+      .sqlQuery("SELECT * FROM INFORMATION_SCHEMA.`TABLES`")
+      .baselineColumns("TABLE_CATALOG",
+        "TABLE_SCHEMA",
+        "TABLE_NAME",
+        "TABLE_TYPE")
+      .ordered()
+      .baselineValues("DRILL", "INFORMATION_SCHEMA", "CATALOGS", "TABLE")
+      .build().run();
   }
 
+  /**
+   * Specify the user, which creates a new client. For that, rather than hacking the TestBuilder,
+   * we just use a simple builder that translates results into string rows.
+   */
   @Test
   public void testMatchingUserNameInLike() throws Exception {
     // connect as the 'root' user

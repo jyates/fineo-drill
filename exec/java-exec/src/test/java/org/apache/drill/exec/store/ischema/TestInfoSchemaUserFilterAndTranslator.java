@@ -22,7 +22,6 @@ import org.apache.drill.QueryTestUtil;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.client.DrillClient;
-import org.apache.drill.exec.proto.UserBitShared;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -77,16 +76,25 @@ public class TestInfoSchemaUserFilterAndTranslator extends PlanTestBase {
 
   @Test
   public void testAnonymousUserOnlySeesTheirOwnInformationSchema() throws Exception {
-    List<Map<String, String>> rows =
-      CollectingRecordListener.runQuery(client, "SELECT * FROM INFORMATION_SCHEMA.`SCHEMATA`");
-    // verify rows
-    assertEquals("Wrong number of rows returned!Got rows: " + rows, 1, rows.size());
-    verifyNextRow(0, rows, schemaRow(ANON, "ischema", ANON, ANON, false));
+    testBuilder()
+      .sqlQuery("SELECT * FROM INFORMATION_SCHEMA.`SCHEMATA`")
+      .baselineColumns("CATALOG_NAME",
+        "TYPE",
+        "SCHEMA_NAME",
+        "SCHEMA_OWNER",
+        "IS_MUTABLE")
+      .ordered()
+      .baselineValues(ANON, "ischema", ANON, ANON, "NO")
+      .build().run();
   }
 
+  /**
+   * Specify the user, which creates a new client. For that, rather than hacking the TestBuilder,
+   * we just use a simple builder that translates results into string rows.
+   */
   @Test
   public void testSpecifyingUserNameFilterAndTranslate() throws Exception {
-    // connect as the 'root' user
+    // connect as the 'root' user.
     Properties props = new Properties();
     props.put("user", "root");
     DrillClient client = null;

@@ -17,7 +17,6 @@
  */
 package org.apache.drill.exec.store.ischema;
 
-import com.google.common.base.Function;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.apache.drill.exec.store.RecordReader;
@@ -56,6 +55,7 @@ public enum SelectedTable{
     InfoSchemaTranslator translator) {
     RecordGenerator recordGenerator = tableDef.getRecordGenerator();
     recordGenerator.setInfoSchemaFilter(filter);
+    recordGenerator.setTranslator(translator);
     recordGenerator.scanSchema(rootSchema);
     return recordGenerator.getRecordReader(translator);
   }

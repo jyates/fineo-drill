@@ -50,6 +50,7 @@ import static org.apache.drill.exec.store.ischema.InfoSchemaConstants.SHRD_COL_T
  */
 public abstract class RecordGenerator<T> {
   protected InfoSchemaFilter filter;
+  private InfoSchemaTranslator translator;
 
   public void setInfoSchemaFilter(InfoSchemaFilter filter) {
     this.filter = filter;
@@ -82,6 +83,7 @@ public abstract class RecordGenerator<T> {
       Map<String, String> recordValues =
           ImmutableMap.of(SHRD_COL_TABLE_SCHEMA, schemaName,
                           SCHS_COL_SCHEMA_NAME, schemaName);
+      recordValues = translate(recordValues);
       if (filter != null && filter.evaluate(recordValues) == Result.FALSE) {
         // If the filter evaluates to false then we don't need to visit the schema.
         // For other two results (TRUE, INCONCLUSIVE) continue to visit the schema.
@@ -98,11 +100,17 @@ public abstract class RecordGenerator<T> {
         ImmutableMap.of( SHRD_COL_TABLE_SCHEMA, schemaName,
                          SCHS_COL_SCHEMA_NAME, schemaName,
                          SHRD_COL_TABLE_NAME, tableName);
+    recordValues = translate(recordValues);
     if (filter != null && filter.evaluate(recordValues) == Result.FALSE) {
       return false;
     }
 
     return true;
+  }
+
+  private Map<String, String> translate(Map<String, String> recordValues){
+    return translator == null? recordValues :
+                   (Map<String, String>) translator.apply(recordValues);
   }
 
   public abstract RecordReader getRecordReader(Function<T, T> transform);
@@ -156,6 +164,10 @@ public abstract class RecordGenerator<T> {
     return Iterators.transform(iter, func);
   }
 
+  public void setTranslator(InfoSchemaTranslator translator) {
+    this.translator = translator;
+  }
+
   public static class Catalogs extends RecordGenerator<Records.Catalog> {
     @Override
     public RecordReader getRecordReader(Function<Records.Catalog, Records.Catalog> transform) {
@@ -189,7 +201,7 @@ public abstract class RecordGenerator<T> {
     List<Records.Table> records = Lists.newArrayList();
 
     @Override
-    public RecordReader getRecordReader(Function<Records.Table,Records.Table> transform) {
+    public RecordReader getRecordReader(Function<Records.Table, Records.Table> transform) {
       return new PojoRecordReader<>(Records.Table.class, wrap(records.iterator(), transform));
     }
 

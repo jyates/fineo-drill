@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Function;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 
 /**
  * Translate an info-schema object.
@@ -50,7 +51,9 @@ public abstract class InfoSchemaTranslator<T> implements Function<T, T> {
       return (T) handleView((Records.View) input);
     } else if (input instanceof Records.Column) {
       return (T) handleColumn((Records.Column) input);
-    } else {
+    } else if (input instanceof Map) {
+      return (T) handleMap((Map<String, String>) input);
+    }else{
       return handleUnknown(input);
     }
   }
@@ -72,6 +75,31 @@ public abstract class InfoSchemaTranslator<T> implements Function<T, T> {
   }
 
   protected Records.Column handleColumn(Records.Column input) {
+    return input;
+  }
+
+  /**
+   * Map that should be transformed when you are handling the catalog, schema or table. Fields that
+   * can be specified:
+   * <ul>
+   *   <li>Schema
+   *   <ol>
+   *     <li>{@value InfoSchemaConstants#SHRD_COL_TABLE_SCHEMA}</li>
+   *     <li>{@value InfoSchemaConstants#SCHS_COL_SCHEMA_NAME}</li>
+   *   </ol></li>
+   *  <li>Table
+   *   <ol>
+   *     <li>{@value InfoSchemaConstants#SHRD_COL_TABLE_SCHEMA}</li>
+   *     <li>{@value InfoSchemaConstants#SCHS_COL_SCHEMA_NAME}</li>
+   *     <li>{@value InfoSchemaConstants#SHRD_COL_TABLE_NAME}</li>
+   *   </ol></li>
+   * </ul>
+   *
+   * If you are modifying the map, you must create a new map, the specified map is <i>immutable</i>
+   * @param input map that is used to be filtered.
+   * @return an updated map, possibly the same object
+   */
+  protected Map<String, String> handleMap(Map<String, String> input) {
     return input;
   }
 

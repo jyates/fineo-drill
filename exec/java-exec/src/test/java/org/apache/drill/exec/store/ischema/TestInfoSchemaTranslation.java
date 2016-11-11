@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.store.ischema;
 
+import com.google.common.base.Function;
 import org.apache.drill.PlanTestBase;
 import org.apache.drill.QueryTestUtil;
 import org.apache.drill.TestBuilder;
@@ -25,8 +26,8 @@ import org.apache.drill.exec.ExecConstants;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -98,30 +99,53 @@ public class TestInfoSchemaTranslation extends PlanTestBase {
    */
   public static class TranslatorForTesting extends InfoSchemaTranslator {
 
+    protected Function<String, String> conversion;
+
+    public TranslatorForTesting() {
+      setFunction(new Function<String, String>() {
+        @Nullable
+        @Override
+        public String apply(@Nullable String input) {
+          return TranslatorForTesting.this.user;
+        }
+      });
+    }
+
+
     @Override
     protected Records.Catalog handleCatalog(Records.Catalog input) {
-      return new Records.Catalog(this.user, input.CATALOG_DESCRIPTION, input.CATALOG_CONNECT);
+      return new Records.Catalog(conversion.apply(input.CATALOG_NAME),
+        input.CATALOG_DESCRIPTION, input.CATALOG_CONNECT);
     }
 
     @Override
     protected Records.Schema handleSchema(Records.Schema input) {
-      return new Records.Schema(this.user, this.user, this.user, input.TYPE,
+      return new Records.Schema(conversion.apply(input.CATALOG_NAME),
+        conversion.apply(input.SCHEMA_NAME), conversion.apply(input.SCHEMA_NAME), input.TYPE,
         input.IS_MUTABLE.equals("YES") ? true : false);
     }
 
     @Override
     protected Records.Table handleTable(Records.Table input) {
-      return new Records.Table(this.user, this.user, this.user, input.TABLE_TYPE);
+      return new Records.Table(conversion.apply(input.TABLE_CATALOG),
+        conversion.apply(input.TABLE_SCHEMA), conversion.apply(input.TABLE_NAME), input.TABLE_TYPE);
     }
 
     @Override
     protected Records.View handleView(Records.View input) {
-      return new Records.View(this.user, this.user, this.user, input.VIEW_DEFINITION);
+      return new Records.View(conversion.apply(input.TABLE_CATALOG),
+        conversion.apply(input.TABLE_SCHEMA), conversion.apply(input.TABLE_NAME),
+        input.VIEW_DEFINITION);
     }
 
     @Override
     protected Records.Column handleColumn(Records.Column input) {
-      return new Records.Column(this.user, this.user, this.user, input);
+      return new Records.Column(conversion.apply(input.TABLE_CATALOG),
+        conversion.apply(input.TABLE_SCHEMA), conversion.apply(input.TABLE_NAME), input);
+    }
+
+    public void setFunction(Function<String, String> function) {
+      this.conversion = function;
     }
   }
 }

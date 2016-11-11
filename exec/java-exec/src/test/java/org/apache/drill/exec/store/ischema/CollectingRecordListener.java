@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -114,7 +114,7 @@ public class CollectingRecordListener implements UserResultsListener {
     for (VectorWrapper<?> vw : va) {
       MaterializedField field = vw.getValueVector().getField();
       columns.add(field.getPath() + "<" + field.getType().getMinorType() +
-                  "(" + field.getType() .getMode() + ")" + ">");
+                  "(" + field.getType().getMode() + ")" + ">");
     }
 
     int rows = va.getRecordCount();
@@ -183,10 +183,11 @@ public class CollectingRecordListener implements UserResultsListener {
     return row;
   }
 
-  static void verifyNextRow(int i, List<Map<String, String>> list, Map<String, String> row) {
-    assertFalse(i + ") Expected another row, but none present!", list.isEmpty());
-    Map<String, String> actual = list.remove(0);
-    assertEquals(i + ") Mismatch!", row, actual);
+  static void verifyNextRow(int i, List<Map<String, String>> actualRows,
+    Map<String, String> expectedRow) {
+    assertFalse(i + ") Expected another row, but none present!", actualRows.isEmpty());
+    Map<String, String> actual = actualRows.remove(0);
+    assertEquals(i + ") Mismatch!", expectedRow, actual);
   }
 }
 

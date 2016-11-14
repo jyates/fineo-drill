@@ -671,6 +671,7 @@
             <configuration>
               <excludes>
                 <exclude>**/TestLargeFileCompilation.java</exclude>
+                <exclude>${test.exclude.pattern}</exclude>
               </excludes>
             </configuration>
           </execution>

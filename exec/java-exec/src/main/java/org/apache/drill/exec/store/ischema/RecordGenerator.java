@@ -178,6 +178,16 @@ public abstract class RecordGenerator<T> {
       return new PojoRecordReader<>(Records.Catalog.class, wrap(iter, transform));
 
     }
+
+    @Override
+    protected boolean shouldVisitSchema(String schemaName, SchemaPlus schema) {
+      return false;
+    }
+
+    @Override
+    protected boolean shouldVisitTable(String schemaName, String tableName) {
+      return false;
+    }
   }
 
   public static class Schemata extends RecordGenerator<Records.Schema> {

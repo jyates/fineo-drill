@@ -17,9 +17,12 @@
  */
 package org.apache.drill.exec.store.dfs.easy;
 
-import java.io.IOException;
-import java.util.List;
-
+import com.fasterxml.jackson.annotation.JacksonInject;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.google.common.base.Preconditions;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.common.logical.FormatPluginConfig;
@@ -27,14 +30,11 @@ import org.apache.drill.common.logical.StoragePluginConfig;
 import org.apache.drill.exec.physical.base.AbstractSubScan;
 import org.apache.drill.exec.store.StoragePluginRegistry;
 import org.apache.drill.exec.store.dfs.NamedFormatPluginConfig;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
 import org.apache.drill.exec.store.schedule.CompleteFileWork.FileWorkImpl;
 
-import com.fasterxml.jackson.annotation.JacksonInject;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.google.common.base.Preconditions;
+import java.io.IOException;
+import java.util.List;
 
 @JsonTypeName("fs-sub-scan")
 public class EasySubScan extends AbstractSubScan{
@@ -43,6 +43,7 @@ public class EasySubScan extends AbstractSubScan{
   private final List<FileWorkImpl> files;
   private final EasyFormatPlugin<?> formatPlugin;
   private final List<SchemaPath> columns;
+  private final DirectoryStrategyBase dirStrategy;
   private String selectionRoot;
 
   @JsonCreator
@@ -53,7 +54,8 @@ public class EasySubScan extends AbstractSubScan{
       @JsonProperty("format") FormatPluginConfig formatConfig, //
       @JacksonInject StoragePluginRegistry engineRegistry, //
       @JsonProperty("columns") List<SchemaPath> columns, //
-      @JsonProperty("selectionRoot") String selectionRoot
+      @JsonProperty("selectionRoot") String selectionRoot,
+      @JsonProperty("dirStrategy") DirectoryStrategyBase dirStrategy
       ) throws IOException, ExecutionSetupException {
     super(userName);
     this.formatPlugin = (EasyFormatPlugin<?>) engineRegistry.getFormatPlugin(storageConfig, formatConfig);
@@ -61,15 +63,18 @@ public class EasySubScan extends AbstractSubScan{
     this.files = files;
     this.columns = columns;
     this.selectionRoot = selectionRoot;
+    this.dirStrategy = dirStrategy;
   }
 
-  public EasySubScan(String userName, List<FileWorkImpl> files, EasyFormatPlugin<?> plugin, List<SchemaPath> columns,
-      String selectionRoot){
+  public EasySubScan(String userName, List<FileWorkImpl> files, EasyFormatPlugin<?> plugin,
+    List<SchemaPath> columns,
+    String selectionRoot, DirectoryStrategyBase dirStrategy){
     super(userName);
     this.formatPlugin = plugin;
     this.files = files;
     this.columns = columns;
     this.selectionRoot = selectionRoot;
+    this.dirStrategy = dirStrategy;
   }
 
   @JsonProperty
@@ -113,4 +118,8 @@ public class EasySubScan extends AbstractSubScan{
     return formatPlugin.getReaderOperatorType();
   }
 
+  @JsonProperty("dirStrategy")
+  public DirectoryStrategyBase getDirStrategy() {
+    return dirStrategy;
+  }
 }

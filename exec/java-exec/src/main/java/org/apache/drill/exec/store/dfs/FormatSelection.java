@@ -17,13 +17,13 @@
  */
 package org.apache.drill.exec.store.dfs;
 
-import java.util.List;
-
-import org.apache.drill.common.logical.FormatPluginConfig;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.drill.common.logical.FormatPluginConfig;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
+
+import java.util.List;
 
 
 public class FormatSelection {
@@ -31,19 +31,22 @@ public class FormatSelection {
 
   private FormatPluginConfig format;
   private FileSelection selection;
+  private DirectoryStrategyBase dirStrategy;
 
   public FormatSelection(){}
 
   @JsonCreator
-  public FormatSelection(@JsonProperty("format") FormatPluginConfig format, @JsonProperty("files") List<String> files){
-    this.format = format;
-    this.selection = FileSelection.create(null, files, null);
+  public FormatSelection(@JsonProperty("format") FormatPluginConfig format,
+                         @JsonProperty("files") List<String> files,
+                         @JsonProperty("dirStrategy") DirectoryStrategyBase dirStrategy){
+    this(format, FileSelection.create(null, files, null), dirStrategy);
   }
 
-  public FormatSelection(FormatPluginConfig format, FileSelection selection) {
-    super();
+  public FormatSelection(FormatPluginConfig format, FileSelection selection,
+    DirectoryStrategyBase dirStrategy) {
     this.format = format;
     this.selection = selection;
+    this.dirStrategy = dirStrategy;
   }
 
   @JsonProperty("format")
@@ -54,6 +57,11 @@ public class FormatSelection {
   @JsonProperty("files")
   public List<String> getAsFiles(){
     return selection.getFiles();
+  }
+
+  @JsonProperty("dirStrategy")
+  public DirectoryStrategyBase getDirStrategy() {
+    return dirStrategy;
   }
 
   @JsonIgnore

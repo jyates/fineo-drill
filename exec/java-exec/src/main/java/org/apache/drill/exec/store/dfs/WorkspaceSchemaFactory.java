@@ -57,7 +57,6 @@ import org.apache.drill.exec.planner.logical.DrillTranslatableTable;
 import org.apache.drill.exec.planner.logical.DrillViewTable;
 import org.apache.drill.exec.planner.logical.DynamicDrillTable;
 import org.apache.drill.exec.planner.logical.FileSystemCreateTableEntry;
-import org.apache.drill.exec.planner.sql.DrillOperatorTable;
 import org.apache.drill.exec.planner.sql.ExpandingConcurrentMap;
 import org.apache.drill.exec.store.AbstractSchema;
 import org.apache.drill.exec.store.PartitionNotFoundException;
@@ -560,7 +559,8 @@ public class WorkspaceSchemaFactory {
     }
 
     private DrillTable isReadable(FormatMatcher m, FileSelection fileSelection) throws IOException {
-      return m.isReadable(fs, fileSelection, plugin, storageEngineName, schemaConfig.getUserName());
+      return m.isReadable(fs, fileSelection, plugin, storageEngineName, schemaConfig.getUserName(),
+        config.getDirStrategy());
     }
 
     @Override
@@ -576,12 +576,13 @@ public class WorkspaceSchemaFactory {
           FormatPluginConfig fconfig = optionExtractor.createConfigForTable(key);
           return new DynamicDrillTable(
               plugin, storageEngineName, schemaConfig.getUserName(),
-              new FormatSelection(fconfig, fileSelection));
+              new FormatSelection(fconfig, fileSelection, config.getDirStrategy()));
         }
         if (hasDirectories) {
           for (final FormatMatcher matcher : dirMatchers) {
             try {
-              DrillTable table = matcher.isReadable(fs, fileSelection, plugin, storageEngineName, schemaConfig.getUserName());
+              DrillTable table = matcher.isReadable(fs, fileSelection, plugin, storageEngineName,
+                schemaConfig.getUserName(), config.getDirStrategy());
               if (table != null) {
                 return table;
               }
@@ -597,7 +598,8 @@ public class WorkspaceSchemaFactory {
         }
 
         for (final FormatMatcher matcher : fileMatchers) {
-          DrillTable table = matcher.isReadable(fs, newSelection, plugin, storageEngineName, schemaConfig.getUserName());
+          DrillTable table = matcher.isReadable(fs, newSelection, plugin, storageEngineName, schemaConfig.getUserName(),
+            config.getDirStrategy());
           if (table != null) {
             return table;
           }

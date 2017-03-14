@@ -17,11 +17,13 @@
  */
 package org.apache.drill.exec.store.easy.text;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.common.logical.FormatPluginConfig;
@@ -44,6 +46,7 @@ import org.apache.drill.exec.store.dfs.easy.EasyFormatPlugin;
 import org.apache.drill.exec.store.dfs.easy.EasyGroupScan;
 import org.apache.drill.exec.store.dfs.easy.EasyWriter;
 import org.apache.drill.exec.store.dfs.easy.FileWork;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
 import org.apache.drill.exec.store.easy.text.compliant.CompliantTextRecordReader;
 import org.apache.drill.exec.store.easy.text.compliant.TextParsingSettings;
 import org.apache.drill.exec.store.schedule.CompleteFileWork;
@@ -54,13 +57,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.FileSplit;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 public class TextFormatPlugin extends EasyFormatPlugin<TextFormatPlugin.TextFormatConfig> {
   private final static String DEFAULT_NAME = "text";
@@ -94,9 +94,10 @@ public class TextFormatPlugin extends EasyFormatPlugin<TextFormatPlugin.TextForm
   }
 
   @Override
-  public AbstractGroupScan getGroupScan(String userName, FileSelection selection, List<SchemaPath> columns)
+  public AbstractGroupScan getGroupScan(String userName, FileSelection selection,
+    List<SchemaPath> columns, DirectoryStrategyBase directoryStrategy)
       throws IOException {
-    return new EasyGroupScan(userName, selection, this, columns, selection.selectionRoot);
+    return new EasyGroupScan(userName, selection, this, columns, selection.selectionRoot, directoryStrategy);
   }
 
   @Override

@@ -17,24 +17,24 @@
  */
 package org.apache.drill.exec.store.dfs;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.regex.Pattern;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Range;
 import org.apache.drill.exec.planner.logical.DrillTable;
 import org.apache.drill.exec.planner.logical.DynamicDrillTable;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Range;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Pattern;
 
 public class BasicFormatMatcher extends FormatMatcher{
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BasicFormatMatcher.class);
@@ -74,15 +74,17 @@ public class BasicFormatMatcher extends FormatMatcher{
 
   @Override
   public DrillTable isReadable(DrillFileSystem fs,
-      FileSelection selection, FileSystemPlugin fsPlugin,
-      String storageEngineName, String userName) throws IOException {
+    FileSelection selection, FileSystemPlugin fsPlugin,
+    String storageEngineName, String userName, DirectoryStrategyBase dirStrategy) throws IOException {
     if (isFileReadable(fs, selection.getFirstPath(fs))) {
       if (plugin.getName() != null) {
         NamedFormatPluginConfig namedConfig = new NamedFormatPluginConfig();
         namedConfig.name = plugin.getName();
-        return new DynamicDrillTable(fsPlugin, storageEngineName, userName, new FormatSelection(namedConfig, selection));
+        return new DynamicDrillTable(fsPlugin, storageEngineName, userName,
+          new FormatSelection(namedConfig, selection, dirStrategy));
       } else {
-        return new DynamicDrillTable(fsPlugin, storageEngineName, userName, new FormatSelection(plugin.getConfig(), selection));
+        return new DynamicDrillTable(fsPlugin, storageEngineName, userName,
+          new FormatSelection(plugin.getConfig(), selection, dirStrategy));
       }
     }
     return null;

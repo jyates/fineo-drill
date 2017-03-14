@@ -17,22 +17,15 @@
  */
 package org.apache.drill.exec.planner;
 
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.util.BitSets;
 import org.apache.drill.common.expression.SchemaPath;
+import org.apache.drill.common.logical.DirectoryColumnMatcher;
 import org.apache.drill.common.types.TypeProtos;
 import org.apache.drill.common.types.Types;
 import org.apache.drill.exec.physical.base.FileGroupScan;
@@ -44,9 +37,15 @@ import org.apache.drill.exec.planner.logical.DynamicDrillTable;
 import org.apache.drill.exec.planner.physical.PlannerSettings;
 import org.apache.drill.exec.store.dfs.FileSelection;
 import org.apache.drill.exec.store.dfs.FormatSelection;
-import org.apache.drill.exec.store.parquet.ParquetGroupScan;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
 import org.apache.drill.exec.vector.NullableVarCharVector;
 import org.apache.drill.exec.vector.ValueVector;
+
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 
 // partition descriptor for file system based tables
@@ -54,16 +53,13 @@ public class FileSystemPartitionDescriptor extends AbstractPartitionDescriptor {
 
   static final int MAX_NESTED_SUBDIRS = 10;          // allow up to 10 nested sub-directories
 
-  private final String partitionLabel;
-  private final int partitionLabelLength;
-  private final Map<String, Integer> partitions = Maps.newHashMap();
   private final TableScan scanRel;
   private final DrillTable table;
+  private final DirectoryStrategyBase strategy;
+  private final DirectoryColumnMatcher strategyMatcher;
 
   public FileSystemPartitionDescriptor(PlannerSettings settings, TableScan scanRel) {
     Preconditions.checkArgument(scanRel instanceof DrillScanRel || scanRel instanceof EnumerableTableScan);
-    this.partitionLabel = settings.getFsPartitionColumnLabel();
-    this.partitionLabelLength = partitionLabel.length();
     this.scanRel = scanRel;
     DrillTable unwrap;
     unwrap = scanRel.getTable().unwrap(DrillTable.class);
@@ -72,26 +68,25 @@ public class FileSystemPartitionDescriptor extends AbstractPartitionDescriptor {
     }
 
     table = unwrap;
-
-    for(int i =0; i < 10; i++){
-      partitions.put(partitionLabel + i, i);
-    }
+    final FormatSelection formatSelection = (FormatSelection) table.getSelection();
+    this.strategy = formatSelection.getDirStrategy();
+    this.strategy.init(settings.getOptions());
+    this.strategyMatcher = strategy.getMatcher();
   }
 
   @Override
   public int getPartitionHierarchyIndex(String partitionName) {
-    String suffix = partitionName.substring(partitionLabelLength); // get the numeric suffix from 'dir<N>'
-    return Integer.parseInt(suffix);
+    return this.strategy.getColumnIndex(partitionName);
   }
 
   @Override
   public boolean isPartitionName(String name) {
-    return partitions.containsKey(name);
+    return strategyMatcher.isDirectory(name);
   }
 
   @Override
   public Integer getIdIfValid(String name) {
-    return partitions.get(name);
+    return strategy.getColumnIndex(name);
   }
 
   @Override
@@ -124,7 +119,10 @@ public class FileSystemPartitionDescriptor extends AbstractPartitionDescriptor {
           // set null if dirX does not exist for the location.
           ((NullableVarCharVector) vectors[partitionColumnIndex]).getMutator().setNull(record);
         } else {
-          byte[] bytes = (partitionLocation.getPartitionValue(partitionColumnIndex)).getBytes(Charsets.UTF_8);
+          // replace the value, if the strategy deems it necessary
+          String val =  this.strategy.getColumnValue(partitionLocation.getPartitionValue
+            (partitionColumnIndex), partitionColumnIndex);
+          byte[] bytes = val.getBytes(Charsets.UTF_8);
           ((NullableVarCharVector) vectors[partitionColumnIndex]).getMutator().setSafe(record, bytes, 0, bytes.length);
         }
       }
@@ -142,10 +140,6 @@ public class FileSystemPartitionDescriptor extends AbstractPartitionDescriptor {
   @Override
   public TypeProtos.MajorType getVectorType(SchemaPath column, PlannerSettings plannerSettings) {
     return Types.optional(TypeProtos.MinorType.VARCHAR);
-  }
-
-  public String getName(int index) {
-    return partitionLabel + index;
   }
 
   private String getBaseTableLocation() {
@@ -200,7 +194,8 @@ public class FileSystemPartitionDescriptor extends AbstractPartitionDescriptor {
     final RelOptTableImpl t = (RelOptTableImpl) oldScan.getTable();
     final FormatSelection formatSelection = (FormatSelection) table.getSelection();
     final FileSelection newFileSelection = new FileSelection(null, newFiles, getBaseTableLocation());
-    final FormatSelection newFormatSelection = new FormatSelection(formatSelection.getFormat(), newFileSelection);
+    final FormatSelection newFormatSelection = new FormatSelection(formatSelection.getFormat(), newFileSelection,
+      formatSelection.getDirStrategy());
     final DrillTranslatableTable newTable = new DrillTranslatableTable(
             new DynamicDrillTable(table.getPlugin(), table.getStorageEngineName(),
             table.getUserName(),

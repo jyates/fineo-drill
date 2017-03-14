@@ -17,12 +17,9 @@
  */
 package org.apache.drill.exec.store.parquet;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.common.logical.StoragePluginConfig;
@@ -49,6 +46,7 @@ import org.apache.drill.exec.store.dfs.FormatMatcher;
 import org.apache.drill.exec.store.dfs.FormatPlugin;
 import org.apache.drill.exec.store.dfs.FormatSelection;
 import org.apache.drill.exec.store.dfs.MagicString;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
 import org.apache.drill.exec.store.mock.MockStorageEngine;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -58,9 +56,11 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public class ParquetFormatPlugin implements FormatPlugin{
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(MockStorageEngine.class);
@@ -162,7 +162,8 @@ public class ParquetFormatPlugin implements FormatPlugin{
   }
 
   @Override
-  public ParquetGroupScan getGroupScan(String userName, FileSelection selection, List<SchemaPath> columns)
+  public ParquetGroupScan getGroupScan(String userName, FileSelection selection, List<SchemaPath>
+    columns, DirectoryStrategyBase directoryStrategy)
       throws IOException {
     return new ParquetGroupScan(userName, selection, this, selection.selectionRoot, columns);
   }
@@ -205,16 +206,17 @@ public class ParquetFormatPlugin implements FormatPlugin{
 
     @Override
     public DrillTable isReadable(DrillFileSystem fs, FileSelection selection,
-        FileSystemPlugin fsPlugin, String storageEngineName, String userName)
+      FileSystemPlugin fsPlugin, String storageEngineName, String userName,
+      DirectoryStrategyBase dirStrategy)
         throws IOException {
       // TODO: we only check the first file for directory reading.
       if(selection.containsDirectories(fs)){
         if(isDirReadable(fs, selection.getFirstPath(fs))){
           return new DynamicDrillTable(fsPlugin, storageEngineName, userName,
-              new FormatSelection(plugin.getConfig(), selection));
+              new FormatSelection(plugin.getConfig(), selection, dirStrategy));
         }
       }
-      return super.isReadable(fs, selection, fsPlugin, storageEngineName, userName);
+      return super.isReadable(fs, selection, fsPlugin, storageEngineName, userName, dirStrategy);
     }
 
     private Path getMetadataPath(FileStatus dir) {

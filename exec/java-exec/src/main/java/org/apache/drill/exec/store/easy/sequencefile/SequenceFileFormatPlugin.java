@@ -31,6 +31,7 @@ import org.apache.drill.exec.store.dfs.easy.EasyFormatPlugin;
 import org.apache.drill.exec.store.dfs.easy.EasyGroupScan;
 import org.apache.drill.exec.store.dfs.easy.EasyWriter;
 import org.apache.drill.exec.store.dfs.easy.FileWork;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.FileSplit;
@@ -58,9 +59,10 @@ public class SequenceFileFormatPlugin extends EasyFormatPlugin<SequenceFileForma
 
 
   @Override
-  public AbstractGroupScan getGroupScan(String userName, FileSelection selection, List<SchemaPath> columns)
+  public AbstractGroupScan getGroupScan(String userName, FileSelection selection,
+    List<SchemaPath> columns, DirectoryStrategyBase directoryStrategy)
     throws IOException {
-    return new EasyGroupScan(userName, selection, this, columns, selection.selectionRoot);
+    return new EasyGroupScan(userName, selection, this, columns, selection.selectionRoot, directoryStrategy);
   }
 
   @Override

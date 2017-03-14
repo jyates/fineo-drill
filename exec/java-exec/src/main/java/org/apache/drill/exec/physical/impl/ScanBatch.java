@@ -17,19 +17,14 @@
  */
 package org.apache.drill.exec.physical.impl;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import io.netty.buffer.DrillBuf;
-
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.common.types.TypeProtos.MinorType;
 import org.apache.drill.common.types.Types;
-import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.exception.OutOfMemoryException;
 import org.apache.drill.exec.exception.SchemaChangeException;
 import org.apache.drill.exec.expr.TypeHelper;
@@ -46,8 +41,9 @@ import org.apache.drill.exec.record.VectorWrapper;
 import org.apache.drill.exec.record.WritableBatch;
 import org.apache.drill.exec.record.selection.SelectionVector2;
 import org.apache.drill.exec.record.selection.SelectionVector4;
-import org.apache.drill.exec.server.options.OptionValue;
 import org.apache.drill.exec.store.RecordReader;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
+import org.apache.drill.exec.store.dfs.strategy.dir.LegacyStrategy;
 import org.apache.drill.exec.testing.ControlsInjector;
 import org.apache.drill.exec.testing.ControlsInjectorFactory;
 import org.apache.drill.exec.util.CallBack;
@@ -55,14 +51,19 @@ import org.apache.drill.exec.vector.AllocationHelper;
 import org.apache.drill.exec.vector.NullableVarCharVector;
 import org.apache.drill.exec.vector.SchemaChangeCallBack;
 import org.apache.drill.exec.vector.ValueVector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Record batch used for a particular scan. Operators against one or more
  */
 public class ScanBatch implements CloseableRecordBatch {
+  private static final Logger LOG = LoggerFactory.getLogger(ScanBatch.class);
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ScanBatch.class);
   private static final ControlsInjector injector = ControlsInjectorFactory.getInjector(ScanBatch.class);
 
@@ -84,16 +85,17 @@ public class ScanBatch implements CloseableRecordBatch {
   private String[] partitionValues;
   private List<ValueVector> partitionVectors;
   private List<Integer> selectedPartitionColumns;
-  private String partitionColumnDesignator;
   private boolean done = false;
   private SchemaChangeCallBack callBack = new SchemaChangeCallBack();
   private boolean hasReadNonEmptyFile = false;
+  private DirectoryStrategyBase strategy;
 
 
   public ScanBatch(PhysicalOperator subScanConfig, FragmentContext context,
-                   OperatorContext oContext, Iterator<RecordReader> readers,
-                   List<String[]> partitionColumns,
-                   List<Integer> selectedPartitionColumns) throws ExecutionSetupException {
+    OperatorContext oContext, Iterator<RecordReader> readers,
+    List<String[]> partitionColumns,
+    List<Integer> selectedPartitionColumns,
+    DirectoryStrategyBase strategy) throws ExecutionSetupException {
     this.context = context;
     this.readers = readers;
     if (!readers.hasNext()) {
@@ -118,15 +120,14 @@ public class ScanBatch implements CloseableRecordBatch {
       }
       oContext.getStats().stopProcessing();
     }
+    // some scan batches don't have a strategy, like when used from parquet. if so, fall back to
+    // the legacy impl
+    this.strategy = strategy == null? new LegacyStrategy(): strategy;
     this.partitionColumns = partitionColumns.iterator();
     partitionValues = this.partitionColumns.hasNext() ? this.partitionColumns.next() : null;
     this.selectedPartitionColumns = selectedPartitionColumns;
-
-    // TODO Remove null check after DRILL-2097 is resolved. That JIRA refers to test cases that do not initialize
-    // options; so labelValue = null.
-    final OptionValue labelValue = context.getOptions().getOption(ExecConstants.FILESYSTEM_PARTITION_COLUMN_LABEL);
-    partitionColumnDesignator = labelValue == null ? "dir" : labelValue.string_val;
-
+    LOG.debug("Selected partition columns: {}", selectedPartitionColumns);
+    this.strategy.init(context.getOptions());
     addPartitionVectors();
   }
 
@@ -135,7 +136,7 @@ public class ScanBatch implements CloseableRecordBatch {
       throws ExecutionSetupException {
     this(subScanConfig, context,
         context.newOperatorContext(subScanConfig),
-        readers, Collections.<String[]> emptyList(), Collections.<Integer> emptyList());
+        readers, Collections.<String[]> emptyList(), Collections.<Integer> emptyList(), new LegacyStrategy());
   }
 
   @Override
@@ -280,8 +281,10 @@ public class ScanBatch implements CloseableRecordBatch {
       }
       partitionVectors = Lists.newArrayList();
       for (int i : selectedPartitionColumns) {
+        String name = this.strategy.getColumnName(i);
+        LOG.debug("Adding partition column vector: ({}): {}", i, name);
         final MaterializedField field =
-            MaterializedField.create(SchemaPath.getSimplePath(partitionColumnDesignator + i).getAsUnescapedPath(),
+            MaterializedField.create(SchemaPath.getSimplePath(name).getAsUnescapedPath(),
                                      Types.optional(MinorType.VARCHAR));
         final ValueVector v = mutator.addField(field, NullableVarCharVector.class);
         partitionVectors.add(v);
@@ -296,7 +299,9 @@ public class ScanBatch implements CloseableRecordBatch {
       final int i = selectedPartitionColumns.get(index);
       final NullableVarCharVector v = (NullableVarCharVector) partitionVectors.get(index);
       if (partitionValues.length > i) {
-        final String val = partitionValues[i];
+        // convert the partition column to a value, if the strategy needs to
+        final String val = strategy.getColumnValue(partitionValues[i], i);
+        LOG.debug("Setting partition value: ({}) {}", i, val);
         AllocationHelper.allocate(v, recordCount, val.length());
         final byte[] bytes = val.getBytes();
         for (int j = 0; j < recordCount; j++) {

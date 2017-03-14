@@ -69,7 +69,7 @@ public class TestInfoSchemaTranslation extends PlanTestBase {
         "IS_MUTABLE")
       .ordered()
       .baselineValues(ANON, "ischema", ANON, ANON, "NO");
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 8; i++) {
       tb = tb.baselineValues(ANON, "file", ANON, ANON, "NO");
     }
     tb.baselineValues(ANON, "file", ANON, ANON, "NO")

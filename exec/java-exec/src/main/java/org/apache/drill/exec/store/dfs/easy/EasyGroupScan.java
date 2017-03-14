@@ -17,10 +17,15 @@
  */
 package org.apache.drill.exec.store.dfs.easy;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-
+import com.fasterxml.jackson.annotation.JacksonInject;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.common.logical.FormatPluginConfig;
@@ -36,6 +41,7 @@ import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.store.StoragePluginRegistry;
 import org.apache.drill.exec.store.dfs.DrillFileSystem;
 import org.apache.drill.exec.store.dfs.FileSelection;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
 import org.apache.drill.exec.store.schedule.AffinityCreator;
 import org.apache.drill.exec.store.schedule.AssignmentCreator;
 import org.apache.drill.exec.store.schedule.BlockMapBuilder;
@@ -43,15 +49,9 @@ import org.apache.drill.exec.store.schedule.CompleteFileWork;
 import org.apache.drill.exec.store.schedule.CompleteFileWork.FileWorkImpl;
 import org.apache.drill.exec.util.ImpersonationUtil;
 
-import com.fasterxml.jackson.annotation.JacksonInject;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 
 @JsonTypeName("fs-scan")
 public class EasyGroupScan extends AbstractFileGroupScan{
@@ -66,6 +66,7 @@ public class EasyGroupScan extends AbstractFileGroupScan{
   private List<CompleteFileWork> chunks;
   private List<EndpointAffinity> endpointAffinities;
   private String selectionRoot;
+  private DirectoryStrategyBase dirStrategy;
 
   @JsonCreator
   public EasyGroupScan(
@@ -75,18 +76,20 @@ public class EasyGroupScan extends AbstractFileGroupScan{
       @JsonProperty("format") FormatPluginConfig formatConfig, //
       @JacksonInject StoragePluginRegistry engineRegistry, //
       @JsonProperty("columns") List<SchemaPath> columns,
-      @JsonProperty("selectionRoot") String selectionRoot
+      @JsonProperty("selectionRoot") String selectionRoot,
+      @JsonProperty("dirStrategy") DirectoryStrategyBase directoryStrategy
       ) throws IOException, ExecutionSetupException {
         this(ImpersonationUtil.resolveUserName(userName),
             FileSelection.create(null, files, selectionRoot),
             (EasyFormatPlugin<?>)engineRegistry.getFormatPlugin(storageConfig, formatConfig),
             columns,
-            selectionRoot);
+            selectionRoot, directoryStrategy);
   }
 
-  public EasyGroupScan(String userName, FileSelection selection, EasyFormatPlugin<?> formatPlugin, String selectionRoot)
+  public EasyGroupScan(String userName, FileSelection selection, EasyFormatPlugin<?>
+    formatPlugin, String selectionRoot, DirectoryStrategyBase directoryStrategy)
       throws IOException {
-    this(userName, selection, formatPlugin, ALL_COLUMNS, selectionRoot);
+    this(userName, selection, formatPlugin, ALL_COLUMNS, selectionRoot, directoryStrategy);
   }
 
   public EasyGroupScan(
@@ -94,13 +97,15 @@ public class EasyGroupScan extends AbstractFileGroupScan{
       FileSelection selection, //
       EasyFormatPlugin<?> formatPlugin, //
       List<SchemaPath> columns,
-      String selectionRoot
+      String selectionRoot,
+      DirectoryStrategyBase directoryStrategy
       ) throws IOException{
     super(userName);
     this.selection = Preconditions.checkNotNull(selection);
     this.formatPlugin = Preconditions.checkNotNull(formatPlugin, "Unable to load format plugin for provided format config.");
     this.columns = columns == null ? ALL_COLUMNS : columns;
     this.selectionRoot = selectionRoot;
+    this.dirStrategy = directoryStrategy;
     initFromSelection(selection, formatPlugin);
   }
 
@@ -124,6 +129,7 @@ public class EasyGroupScan extends AbstractFileGroupScan{
     endpointAffinities = that.endpointAffinities;
     maxWidth = that.maxWidth;
     mappings = that.mappings;
+    this.dirStrategy = that.dirStrategy;
   }
 
   private void initFromSelection(FileSelection selection, EasyFormatPlugin<?> formatPlugin) throws IOException {
@@ -220,7 +226,8 @@ public class EasyGroupScan extends AbstractFileGroupScan{
     Preconditions.checkArgument(!filesForMinor.isEmpty(),
         String.format("MinorFragmentId %d has no read entries assigned", minorFragmentId));
 
-    EasySubScan subScan = new EasySubScan(getUserName(), convert(filesForMinor), formatPlugin, columns, selectionRoot);
+    EasySubScan subScan = new EasySubScan(getUserName(), convert(filesForMinor), formatPlugin,
+      columns, selectionRoot, this.dirStrategy);
     subScan.setOperatorId(this.getOperatorId());
     return subScan;
   }
@@ -279,4 +286,8 @@ public class EasyGroupScan extends AbstractFileGroupScan{
     return formatPlugin.supportsPushDown();
   }
 
+  @JsonProperty("dirStrategy")
+  public DirectoryStrategyBase getDirStrategy() {
+    return dirStrategy;
+  }
 }

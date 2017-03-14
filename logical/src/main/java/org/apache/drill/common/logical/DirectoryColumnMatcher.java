@@ -15,22 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.drill.exec.store.dfs;
+package org.apache.drill.common.logical;
 
-import org.apache.drill.exec.planner.logical.DrillTable;
-import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
-import org.apache.hadoop.fs.FileStatus;
+import org.apache.drill.common.expression.SchemaPath;
 
-import java.io.IOException;
+/**
+ *
+ */
+public interface DirectoryColumnMatcher {
 
-public abstract class FormatMatcher {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(FormatMatcher.class);
+  boolean isDirectory(SchemaPath column);
 
-  public abstract boolean supportDirectoryReads();
-  public abstract DrillTable isReadable(DrillFileSystem fs,
-    FileSelection selection, FileSystemPlugin fsPlugin,
-    String storageEngineName, String userName, DirectoryStrategyBase dirStrategy) throws
-    IOException;
-  public abstract boolean isFileReadable(DrillFileSystem fs, FileStatus status) throws IOException;
-  public abstract FormatPlugin getFormatPlugin();
+  boolean isDirectory(String path);
 }

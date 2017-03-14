@@ -145,7 +145,7 @@ public class BaseTestImpersonation extends PlanTestBase {
     final Path dirPath = new Path(path);
     FileSystem.mkdirs(fs, dirPath, new FsPermission(permissions));
     fs.setOwner(dirPath, owner, group);
-    final WorkspaceConfig ws = new WorkspaceConfig(path, true, "parquet");
+    final WorkspaceConfig ws = new WorkspaceConfig(path, true, "parquet", null);
     workspaces.put(name, ws);
   }
 

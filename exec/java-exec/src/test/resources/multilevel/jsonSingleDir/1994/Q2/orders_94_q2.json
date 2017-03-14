@@ -1,0 +1,31 @@
+{
+  "o_orderkey" : 417,
+  "o_custkey" : 547,
+  "o_orderstatus" : "F",
+  "o_totalprice" : 132531.73,
+  "o_orderdate" : "1994-02-06T00:00:00.000-08:00",
+  "o_orderpriority" : "3-MEDIUM",
+  "o_clerk" : "Clerk#000000468",
+  "o_shippriority" : 0,
+  "o_comment" : "ironic, even packages. thinly unusual accounts sleep along the slyly unusual "
+} {
+  "o_orderkey" : 673,
+  "o_custkey" : 793,
+  "o_orderstatus" : "F",
+  "o_totalprice" : 34950.94,
+  "o_orderdate" : "1994-03-10T00:00:00.000-08:00",
+  "o_orderpriority" : "1-URGENT",
+  "o_clerk" : "Clerk#000000448",
+  "o_shippriority" : 0,
+  "o_comment" : " special pinto beans use quickly furiously even depende"
+} {
+  "o_orderkey" : 833,
+  "o_custkey" : 553,
+  "o_orderstatus" : "F",
+  "o_totalprice" : 53948.73,
+  "o_orderdate" : "1994-02-13T00:00:00.000-08:00",
+  "o_orderpriority" : "3-MEDIUM",
+  "o_clerk" : "Clerk#000000437",
+  "o_shippriority" : 0,
+  "o_comment" : "ts haggle quickly across the slyl"
+}

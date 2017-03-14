@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.drill.common.expression.LogicalExpression;
 import org.apache.drill.common.expression.SchemaPath;
+import org.apache.drill.common.logical.DirectoryStrategyUtil;
 import org.apache.drill.common.logical.FormatPluginConfigBase;
 import org.apache.drill.common.logical.StoragePluginConfigBase;
 import org.apache.drill.common.logical.data.LogicalOperatorBase;
@@ -55,6 +56,7 @@ public class LogicalPlanPersistence {
     registerSubtypes(LogicalOperatorBase.getSubTypes(scanResult));
     registerSubtypes(StoragePluginConfigBase.getSubTypes(scanResult));
     registerSubtypes(FormatPluginConfigBase.getSubTypes(scanResult));
+    registerSubtypes(DirectoryStrategyUtil.getSubTypes(scanResult));
   }
 
   private <T> void registerSubtypes(Set<Class<? extends T>> types) {

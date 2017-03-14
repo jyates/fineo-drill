@@ -11,6 +11,33 @@
         "tmp" : {
           location: "/tmp/drilltest",
           writable: true
+        },
+        "fixed":{
+          location: "/",
+          writable: false,
+          dirStrategy:{
+            type: "fixed",
+            hierarchy: ["yr", "quarter"],
+            subdirs: true
+          }
+        },
+        "fixed1": {
+          location: "/",
+          writable: false,
+          dirStrategy: {
+            type: "fixed",
+            hierarchy: ["yr"],
+            subdirs: true
+          }
+        },
+        "fixedNoSubdir": {
+          location: "/",
+          writable: false,
+          dirStrategy: {
+            type: "fixed",
+            hierarchy: ["yr"],
+            subdirs: false
+          }
         }
       },
       formats: {

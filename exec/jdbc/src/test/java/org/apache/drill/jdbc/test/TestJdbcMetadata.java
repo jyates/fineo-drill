@@ -58,7 +58,7 @@ public class TestJdbcMetadata extends JdbcTestActionBase {
       public ResultSet getResult(Connection c) throws SQLException {
         return c.getMetaData().getSchemas("DRILL", "%fs%");
       }
-    }, 6);
+    }, 9);
   }
 
   @Test

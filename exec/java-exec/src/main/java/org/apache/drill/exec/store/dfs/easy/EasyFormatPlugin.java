@@ -17,18 +17,14 @@
  */
 package org.apache.drill.exec.store.dfs.easy;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
+import org.apache.drill.common.logical.DirectoryColumnMatcher;
 import org.apache.drill.common.logical.FormatPluginConfig;
 import org.apache.drill.common.logical.StoragePluginConfig;
-import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.OperatorContext;
 import org.apache.drill.exec.physical.base.AbstractGroupScan;
@@ -51,12 +47,15 @@ import org.apache.drill.exec.store.dfs.DrillFileSystem;
 import org.apache.drill.exec.store.dfs.FileSelection;
 import org.apache.drill.exec.store.dfs.FormatMatcher;
 import org.apache.drill.exec.store.dfs.FormatPlugin;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
+import org.apache.drill.exec.store.dfs.strategy.dir.LegacyStrategy;
 import org.apache.drill.exec.store.schedule.CompleteFileWork;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 
 public abstract class EasyFormatPlugin<T extends FormatPluginConfig> implements FormatPlugin {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(EasyFormatPlugin.class);
@@ -125,8 +124,12 @@ public abstract class EasyFormatPlugin<T extends FormatPluginConfig> implements 
       List<SchemaPath> columns, String userName) throws ExecutionSetupException;
 
   CloseableRecordBatch getReaderBatch(FragmentContext context, EasySubScan scan) throws ExecutionSetupException {
-    String partitionDesignator = context.getOptions()
-      .getOption(ExecConstants.FILESYSTEM_PARTITION_COLUMN_LABEL).string_val;
+    DirectoryStrategyBase strategy = scan.getDirStrategy();
+    // can happen when we provide a legacy query plan.
+    if(strategy == null){
+      strategy = new LegacyStrategy();
+    }
+    strategy.init(context.getOptions());
     List<SchemaPath> columns = scan.getColumns();
     List<RecordReader> readers = Lists.newArrayList();
     List<String[]> partitionColumns = Lists.newArrayList();
@@ -136,25 +139,29 @@ public abstract class EasyFormatPlugin<T extends FormatPluginConfig> implements 
     if (columns == null || columns.size() == 0 || AbstractRecordReader.isStarQuery(columns)) {
       selectAllColumns = true;
     } else {
+      // we got a non-star column name. Pull the selected partition columns, if specified.
+      // Get the 'other' (regular) columns normally
       List<SchemaPath> newColumns = Lists.newArrayList();
-      Pattern pattern = Pattern.compile(String.format("%s[0-9]+", partitionDesignator));
+      DirectoryColumnMatcher dm = strategy.getMatcher();
       for (SchemaPath column : columns) {
-        Matcher m = pattern.matcher(column.getAsUnescapedPath());
-        if (m.matches()) {
-          selectedPartitionColumns.add(Integer.parseInt(column.getAsUnescapedPath().toString().substring(partitionDesignator.length())));
-        } else {
+        if(dm.isDirectory(column)){
+          selectedPartitionColumns.add(strategy.getColumnIndex(column));
+        }
+        else {
           newColumns.add(column);
         }
       }
 
       // We must make sure to pass a table column(not to be confused with partition column) to the underlying record
-      // reader.
+      // reader. This happens if did a scan and the column we requested was a partition column...
+      // not clear why we need to actually anything from the file if we don't actual want to
+      // select anything from it.
       if (newColumns.size()==0) {
         newColumns.add(AbstractRecordReader.STAR_COLUMN);
       }
       // Create a new sub scan object with the new set of columns;
       EasySubScan newScan = new EasySubScan(scan.getUserName(), scan.getWorkUnits(), scan.getFormatPlugin(),
-          newColumns, scan.getSelectionRoot());
+          newColumns, scan.getSelectionRoot(), scan.getDirStrategy());
       newScan.setOperatorId(scan.getOperatorId());
       scan = newScan;
     }
@@ -191,7 +198,8 @@ public abstract class EasyFormatPlugin<T extends FormatPluginConfig> implements 
       }
     }
 
-    return new ScanBatch(scan, context, oContext, readers.iterator(), partitionColumns, selectedPartitionColumns);
+    return new ScanBatch(scan, context, oContext, readers.iterator(), partitionColumns,
+      selectedPartitionColumns, strategy);
   }
 
   public abstract RecordWriter getRecordWriter(FragmentContext context, EasyWriter writer) throws IOException;
@@ -221,9 +229,10 @@ public abstract class EasyFormatPlugin<T extends FormatPluginConfig> implements 
   }
 
   @Override
-  public AbstractGroupScan getGroupScan(String userName, FileSelection selection, List<SchemaPath> columns)
+  public AbstractGroupScan getGroupScan(String userName, FileSelection selection,
+    List<SchemaPath> columns, DirectoryStrategyBase dirStrategy)
       throws IOException {
-    return new EasyGroupScan(userName, selection, this, columns, selection.selectionRoot);
+    return new EasyGroupScan(userName, selection, this, columns, selection.selectionRoot, dirStrategy);
   }
 
   @Override

@@ -17,10 +17,8 @@
  */
 package org.apache.drill.exec.store.avro;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.regex.Pattern;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.common.logical.StoragePluginConfig;
@@ -41,10 +39,12 @@ import org.apache.drill.exec.store.dfs.NamedFormatPluginConfig;
 import org.apache.drill.exec.store.dfs.easy.EasyFormatPlugin;
 import org.apache.drill.exec.store.dfs.easy.EasyWriter;
 import org.apache.drill.exec.store.dfs.easy.FileWork;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
 import org.apache.hadoop.conf.Configuration;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Format plugin for Avro data files.
@@ -102,15 +102,18 @@ public class AvroFormatPlugin extends EasyFormatPlugin<AvroFormatConfig> {
 
     @Override
     public DrillTable isReadable(DrillFileSystem fs,
-        FileSelection selection, FileSystemPlugin fsPlugin,
-        String storageEngineName, String userName) throws IOException {
+      FileSelection selection, FileSystemPlugin fsPlugin,
+      String storageEngineName, String userName, DirectoryStrategyBase dirStrategy) throws IOException {
       if (isFileReadable(fs, selection.getFirstPath(fs))) {
         if (plugin.getName() != null) {
           NamedFormatPluginConfig namedConfig = new NamedFormatPluginConfig();
           namedConfig.name = plugin.getName();
-          return new AvroDrillTable(storageEngineName, fsPlugin, userName, new FormatSelection(namedConfig, selection));
+          return new AvroDrillTable(storageEngineName, fsPlugin, userName, new FormatSelection(namedConfig, selection,
+            dirStrategy));
         } else {
-          return new AvroDrillTable(storageEngineName, fsPlugin, userName, new FormatSelection(plugin.getConfig(), selection));
+          return new AvroDrillTable(storageEngineName, fsPlugin, userName, new FormatSelection(plugin.getConfig(), selection,
+
+            dirStrategy));
         }
       }
       return null;

@@ -142,7 +142,7 @@ public class FileSystemPlugin extends AbstractStoragePlugin{
     if (plugin == null) {
       plugin = formatCreator.newFormatPlugin(formatSelection.getFormat());
     }
-    return plugin.getGroupScan(userName, formatSelection.getSelection(), columns);
+    return plugin.getGroupScan(userName, formatSelection.getSelection(), columns, formatSelection.getDirStrategy());
   }
 
   @Override

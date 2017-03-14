@@ -15,22 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.drill.exec.store.dfs;
+package org.apache.drill.exec.store.dfs.strategy.dir;
 
-import org.apache.drill.exec.planner.logical.DrillTable;
-import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
-import org.apache.hadoop.fs.FileStatus;
+import org.apache.drill.common.expression.SchemaPath;
+import org.apache.drill.common.logical.DirectoryColumnMatcher;
 
-import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public abstract class FormatMatcher {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(FormatMatcher.class);
+/**
+ * Matches directory (partition) names based on the specified {@link Pattern}
+ */
+class PatternMatcher extends DirectoryColumnMatcherBase {
+  private final Pattern pattern;
 
-  public abstract boolean supportDirectoryReads();
-  public abstract DrillTable isReadable(DrillFileSystem fs,
-    FileSelection selection, FileSystemPlugin fsPlugin,
-    String storageEngineName, String userName, DirectoryStrategyBase dirStrategy) throws
-    IOException;
-  public abstract boolean isFileReadable(DrillFileSystem fs, FileStatus status) throws IOException;
-  public abstract FormatPlugin getFormatPlugin();
+  public PatternMatcher(Pattern pattern) {
+    this.pattern = pattern;
+  }
+
+  @Override
+  public boolean isDirectory(String path) {
+    Matcher m = pattern.matcher(path);
+    return m.matches();
+  }
 }

@@ -19,29 +19,38 @@ package org.apache.drill.exec.store.dfs;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.drill.common.logical.DirectoryStrategy;
+import org.apache.drill.exec.store.dfs.strategy.dir.DirectoryStrategyBase;
+import org.apache.drill.exec.store.dfs.strategy.dir.LegacyStrategy;
 
 /**
  * Stores the workspace related config. A workspace has:
  *  - location which is a path.
  *  - writable flag to indicate whether the location supports creating new tables.
  *  - default storage format for new tables created in this workspace.
+ *  - a strategy for handling directories.
  */
 @JsonIgnoreProperties(value = {"storageformat"})
 public class WorkspaceConfig {
 
   /** Default workspace is a root directory which supports read, but not write. */
-  public static final WorkspaceConfig DEFAULT = new WorkspaceConfig("/", false, null);
+  public static final WorkspaceConfig DEFAULT = new WorkspaceConfig("/", false, null,
+      new LegacyStrategy());
 
   private final String location;
   private final boolean writable;
   private final String defaultInputFormat;
+  private final DirectoryStrategyBase dirStrategy;
 
   public WorkspaceConfig(@JsonProperty("location") String location,
                          @JsonProperty("writable") boolean writable,
-                         @JsonProperty("defaultInputFormat") String defaultInputFormat) {
+                         @JsonProperty("defaultInputFormat") String defaultInputFormat,
+                         @JsonProperty("dirStrategy") DirectoryStrategy dirStrategy) {
     this.location = location;
     this.writable = writable;
     this.defaultInputFormat = defaultInputFormat;
+    this.dirStrategy = dirStrategy == null?
+                       new LegacyStrategy(): (DirectoryStrategyBase) dirStrategy;
   }
 
   public String getLocation() {
@@ -54,6 +63,10 @@ public class WorkspaceConfig {
 
   public String getDefaultInputFormat() {
     return defaultInputFormat;
+  }
+
+  public DirectoryStrategyBase getDirStrategy() {
+    return dirStrategy;
   }
 
   @Override

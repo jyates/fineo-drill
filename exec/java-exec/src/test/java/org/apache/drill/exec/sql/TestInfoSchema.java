@@ -104,6 +104,9 @@ public class TestInfoSchema extends BaseTestQuery {
             new String[] { "dfs_test.home" },
             new String[] { "dfs_test.default" },
             new String[] { "dfs_test.tmp" },
+            new String[] { "dfs_test.fixed" },
+            new String[] { "dfs_test.fixed1" },
+            new String[] { "dfs_test.fixedNoSubdir" },
             new String[] { "INFORMATION_SCHEMA" }
         );
 

@@ -150,7 +150,9 @@ public class FileSelection {
     logger.debug("FileSelection.minusDirectories() took {} ms, numFiles: {}",
         timer.elapsed(TimeUnit.MILLISECONDS), total);
 
-    fileSel.setExpanded();
+    if(fileSel != null) {
+      fileSel.setExpanded();
+    }
     return fileSel;
   }
 

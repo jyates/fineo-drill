@@ -19,6 +19,7 @@ package org.apache.drill.exec.store.dfs;
 
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 
 import java.io.FileNotFoundException;
@@ -66,6 +67,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.AccessControlException;
 
@@ -126,7 +128,7 @@ public class WorkspaceSchemaFactory {
     if (!Strings.isNullOrEmpty(defaultInputFormat)) {
       final FormatPlugin formatPlugin = plugin.getFormatPlugin(defaultInputFormat);
       if (formatPlugin == null) {
-        final String message = String.format("Unable to find default input format[%s] for workspace[%s.%s]",
+        final String message = format("Unable to find default input format[%s] for workspace[%s.%s]",
             defaultInputFormat, storageEngineName, schemaName);
         throw new ExecutionSetupException(message);
       }
@@ -148,14 +150,15 @@ public class WorkspaceSchemaFactory {
   public boolean accessible(final String userName) throws IOException {
     final FileSystem fs = ImpersonationUtil.createFileSystem(userName, fsConf);
     try {
-      // We have to rely on the listStatus as a FileSystem can have complicated controls such as regular unix style
-      // permissions, Access Control Lists (ACLs) or Access Control Expressions (ACE). Hadoop 2.7 version of FileSystem
-      // has a limited private API (FileSystem.access) to check the permissions directly
-      // (see https://issues.apache.org/jira/browse/HDFS-6570). Drill currently relies on Hadoop 2.5.0 version of
-      // FileClient. TODO: Update this when DRILL-3749 is fixed.
-      fs.listStatus(wsPath);
+      // access API checks if a user has certain permissions on a file or directory.
+      // returns normally if requested permissions are granted and throws an exception
+      // if access is denied. This API was added in HDFS 2.6 (see HDFS-6570).
+      // It is less expensive (than listStatus which was being used before) and hides the
+      // complicated access control logic underneath.
+      fs.access(wsPath, FsAction.READ);
     } catch (final UnsupportedOperationException e) {
-      logger.trace("The filesystem for this workspace does not support this operation.", e);
+      logger.warn(format("The filesystem for this workspace (%s) does not support %s operation.",
+        wsPath, FsAction.READ),e);
     } catch (final FileNotFoundException | AccessControlException e) {
       return false;
     }
@@ -542,7 +545,7 @@ public class WorkspaceSchemaFactory {
       FormatPlugin formatPlugin = plugin.getFormatPlugin(storage);
       if (formatPlugin == null) {
         throw new UnsupportedOperationException(
-          String.format("Unsupported format '%s' in workspace '%s'", config.getDefaultInputFormat(),
+          format("Unsupported format '%s' in workspace '%s'", config.getDefaultInputFormat(),
               Joiner.on(".").join(getSchemaPath())));
       }
 
@@ -652,7 +655,7 @@ public class WorkspaceSchemaFactory {
       if (fileSelection == null) {
         throw UserException
             .validationError()
-            .message(String.format("Table [%s] not found", tableName))
+            .message(format("Table [%s] not found", tableName))
             .build(logger);
       }
 

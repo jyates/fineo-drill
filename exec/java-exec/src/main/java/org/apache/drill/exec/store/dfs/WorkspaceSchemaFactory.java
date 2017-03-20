@@ -158,9 +158,16 @@ public class WorkspaceSchemaFactory {
       fs.access(wsPath, FsAction.READ);
     } catch (final UnsupportedOperationException e) {
       logger.warn(format("The filesystem for this workspace (%s) does not support %s operation.",
-        wsPath, FsAction.READ),e);
+        wsPath, FsAction.READ), e);
+      throw e;
     } catch (final FileNotFoundException | AccessControlException e) {
+      logger.debug("[{} - {}] ' failed to read {} ", this.storageEngineName, this.schemaName,
+        wsPath, e);
       return false;
+    } catch (IOException | RuntimeException e) {
+      logger.debug("[{} - {}] ' failed to read {} ", this.storageEngineName, this.schemaName,
+        wsPath, e);
+      throw e;
     }
 
     return true;

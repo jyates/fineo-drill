@@ -332,6 +332,10 @@ public class TestInfoSchema extends BaseTestQuery {
   @Test
   public void showFiles() throws Exception {
     test("show files from dfs_test.`/tmp`");
+  }
+
+  @Test
+  public void testShowFilesFromDefault() throws Exception {
     test("show files from `dfs_test.default`.`/tmp`");
   }
 

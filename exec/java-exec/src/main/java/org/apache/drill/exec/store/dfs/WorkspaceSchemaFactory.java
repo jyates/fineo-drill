@@ -67,7 +67,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.AccessControlException;
 
@@ -150,16 +149,16 @@ public class WorkspaceSchemaFactory {
   public boolean accessible(final String userName) throws IOException {
     final FileSystem fs = ImpersonationUtil.createFileSystem(userName, fsConf);
     try {
-      // access API checks if a user has certain permissions on a file or directory.
-      // returns normally if requested permissions are granted and throws an exception
-      // if access is denied. This API was added in HDFS 2.6 (see HDFS-6570).
-      // It is less expensive (than listStatus which was being used before) and hides the
-      // complicated access control logic underneath.
-      fs.access(wsPath, FsAction.READ);
+      // We have to rely on the listStatus as a FileSystem can have complicated controls such as regular unix style
+      // permissions, Access Control Lists (ACLs) or Access Control Expressions (ACE). Hadoop 2.7 version of FileSystem
+      // has a limited private API (FileSystem.access) to check the permissions directly
+      // (see https://issues.apache.org/jira/browse/HDFS-6570). Drill currently relies on Hadoop 2.5.0 version of
+      // FileClient. TODO: Update this when DRILL-3749 is fixed.
+      fs.listStatus(wsPath);
     } catch (final UnsupportedOperationException e) {
-      logger.warn(format("The filesystem for this workspace (%s) does not support %s operation.",
-        wsPath, FsAction.READ), e);
-      throw e;
+      logger.debug(format(
+        "The filesystem for this workspace (%s - %s) does not support the 'list' operation. Path:"
+        + " %s. Marking accessible!", storageEngineName, schemaName, wsPath), e);
     } catch (final FileNotFoundException | AccessControlException e) {
       logger.debug("[{} - {}] ' failed to read {} ", this.storageEngineName, this.schemaName,
         wsPath, e);

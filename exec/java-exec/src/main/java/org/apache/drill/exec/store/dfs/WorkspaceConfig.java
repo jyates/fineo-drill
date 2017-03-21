@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.store.dfs;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.drill.common.logical.DirectoryStrategy;
@@ -35,22 +36,33 @@ public class WorkspaceConfig {
 
   /** Default workspace is a root directory which supports read, but not write. */
   public static final WorkspaceConfig DEFAULT = new WorkspaceConfig("/", false, null,
-      new LegacyStrategy());
+      new LegacyStrategy(), false);
 
   private final String location;
   private final boolean writable;
   private final String defaultInputFormat;
   private final DirectoryStrategyBase dirStrategy;
+  private final boolean skipViews;
 
+  public WorkspaceConfig(String location,
+    boolean writable,
+    String defaultInputFormat,
+    DirectoryStrategy dirStrategy) {
+    this(location, writable, defaultInputFormat, dirStrategy, false);
+  }
+
+  @JsonCreator
   public WorkspaceConfig(@JsonProperty("location") String location,
                          @JsonProperty("writable") boolean writable,
                          @JsonProperty("defaultInputFormat") String defaultInputFormat,
-                         @JsonProperty("dirStrategy") DirectoryStrategy dirStrategy) {
+                         @JsonProperty("dirStrategy") DirectoryStrategy dirStrategy,
+                          @JsonProperty("skipViews") boolean skipViews) {
     this.location = location;
     this.writable = writable;
     this.defaultInputFormat = defaultInputFormat;
     this.dirStrategy = dirStrategy == null?
                        new LegacyStrategy(): (DirectoryStrategyBase) dirStrategy;
+    this.skipViews = skipViews;
   }
 
   public String getLocation() {
@@ -67,6 +79,10 @@ public class WorkspaceConfig {
 
   public DirectoryStrategyBase getDirStrategy() {
     return dirStrategy;
+  }
+
+  public boolean getSkipViews() {
+    return skipViews;
   }
 
   @Override

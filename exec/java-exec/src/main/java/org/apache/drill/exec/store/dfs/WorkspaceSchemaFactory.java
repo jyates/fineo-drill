@@ -493,6 +493,17 @@ public class WorkspaceSchemaFactory {
       }
 
       // then look for files that start with this name and end in .drill.
+      if(!config.getSkipViews()) {
+        Table table = getViewTable(tableName);
+        if (table != null) {
+          return table;
+        }
+      }
+
+      return tables.get(tableKey);
+    }
+
+    private DrillViewTable getViewTable(String tableName){
       List<DotDrillFile> files = Collections.emptyList();
       try {
         try {
@@ -501,8 +512,8 @@ public class WorkspaceSchemaFactory {
           if (!schemaConfig.getIgnoreAuthErrors()) {
             logger.debug(e.getMessage());
             throw UserException.permissionError(e)
-              .message("Not authorized to list or query tables in schema [%s]", getFullSchemaName())
-              .build(logger);
+                               .message("Not authorized to list or query tables in schema [%s]", getFullSchemaName())
+                               .build(logger);
           }
         } catch (IOException e) {
           logger.warn("Failure while trying to list view tables in workspace [{}]", tableName, getFullSchemaName(), e);
@@ -510,26 +521,25 @@ public class WorkspaceSchemaFactory {
 
         for (DotDrillFile f : files) {
           switch (f.getType()) {
-          case VIEW:
-            try {
-              return new DrillViewTable(getView(f), f.getOwner(), schemaConfig.getViewExpansionContext());
-            } catch (AccessControlException e) {
-              if (!schemaConfig.getIgnoreAuthErrors()) {
-                logger.debug(e.getMessage());
-                throw UserException.permissionError(e)
-                  .message("Not authorized to read view [%s] in schema [%s]", tableName, getFullSchemaName())
-                  .build(logger);
+            case VIEW:
+              try {
+                return new DrillViewTable(getView(f), f.getOwner(), schemaConfig.getViewExpansionContext());
+              } catch (AccessControlException e) {
+                if (!schemaConfig.getIgnoreAuthErrors()) {
+                  logger.debug(e.getMessage());
+                  throw UserException.permissionError(e)
+                                     .message("Not authorized to read view [%s] in schema [%s]", tableName, getFullSchemaName())
+                                     .build(logger);
+                }
+              } catch (IOException e) {
+                logger.warn("Failure while trying to load {}.view.drill file in workspace [{}]", tableName, getFullSchemaName(), e);
               }
-            } catch (IOException e) {
-              logger.warn("Failure while trying to load {}.view.drill file in workspace [{}]", tableName, getFullSchemaName(), e);
-            }
           }
         }
       } catch (UnsupportedOperationException e) {
         logger.debug("The filesystem for this workspace does not support this operation.", e);
       }
-
-      return tables.get(tableKey);
+      return null;
     }
 
     @Override
